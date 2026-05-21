@@ -1,0 +1,32 @@
+# IDE configs
+.vscode/
+.idea/
+.DS_Store
+
+# Log files
+logs/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Security and Environment variables
+*.env
+*.secret
+*.key
+*.pem
+credentials.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+mypy_cache/
+.coverage
+nosetests.xml
+*.egg-info/
+dist/
+build/
