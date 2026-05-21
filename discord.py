@@ -1,3 +1,4 @@
+import rag_pipeline
 import discord
 import asyncio
 import logging
@@ -10,16 +11,19 @@ def InitiateLogging(directory: str):
 
     logging.basicConfig(
         level=logging.DEBUG,
-        format="[%(asctime)s] [%(levelname)s] - %(message)s",
+        format="[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s",
         datefmt='%Y-%m-%d %H:%M:%S',
         filename=logFile,
         filemode='a',
     );
 
 def main():
-    logging.info("Starting the Discord bot...");
-    # Add your Discord bot code here
-    logging.info("Discord bot started successfully.");
+    logger = logging.getLogger(__name__)
+    logger.info("Starting the Discord bot...");
+    # Add discord code here
+    logger.info("Discord bot successfully started.");
+    rag_pipeline.save_response("Discord bot is running and ready to handle messages.");
+    
 
 if __name__ == "__main__":
     # Initialize the logging system
