@@ -12,7 +12,7 @@ load_dotenv()
 def main() -> None:
     # Initialize the logging system
     logDir: str = "logs"
-    initiateLogging(logDir)
+    initiateLogging(logDir, "discord_bot")
 
     # Configure the logger
     logger = logging.getLogger(__name__)
