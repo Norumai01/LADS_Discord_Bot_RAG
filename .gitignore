@@ -30,3 +30,6 @@ nosetests.xml
 *.egg-info/
 dist/
 build/
+
+# Other files
+data/
