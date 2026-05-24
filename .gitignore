@@ -31,5 +31,9 @@ nosetests.xml
 dist/
 build/
 
+# Database
+*.db
+chroma_db/
+
 # Other files
 data/
