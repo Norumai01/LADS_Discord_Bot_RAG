@@ -1,10 +1,14 @@
+import logging
 from pathlib import Path
 import re
 
-INPUT_FILE = Path("../../data/sylus_raw.txt")
+#INPUT_FILE = Path("../../data/sylus_raw.txt") # For testing purposes
 CHUNK_SIZE = 300        # words per chunk
 CHUNK_OVERLAP = 30      # words carried over to the next chunk
 MIN_CHUNK_SIZE = 100    # characters - filters out noise
+
+# Initialize the logging system
+logger = logging.getLogger(__name__)
 
 def chunk(text: str,  size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) ->  list[str]:
     """
@@ -18,6 +22,10 @@ def chunk(text: str,  size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) ->  
     Returns:
         list[str]: A list of chunked text.
     """
+    if text is None or text == "":
+        logging.error("No text provided for chunking.")
+        return []
+
     words: list[str] = text.split()
     chunks = []
     i = 0
@@ -39,6 +47,10 @@ def clean(text: str) -> str:
     Returns:
         str: Cleaned text.
     """
+    if text is None or text == "":
+        logger.error("No text provided for cleaning.")
+        return ""
+
     text = re.sub(r"\[\s*\d+\s*\]", "", text)   # leftover [1] [2] references
     text = re.sub(r"\n{3,}", "\n\n", text)       # excessive blank lines
     return text.strip()
@@ -54,6 +66,10 @@ def filterChunks(chunks: list[str], minLength: int = MIN_CHUNK_SIZE) -> list[str
     Returns:
         list[str]: Filtered list of chunks.
     """
+    if chunks is None or len(chunks) <= 0:
+        logger.error("No chunks provided for filtering.")
+        return []
+
     return [c for c in chunks if len(c.strip()) >= minLength]
 
 def processFile(inputFile: Path) -> list[str]:
@@ -70,5 +86,10 @@ def processFile(inputFile: Path) -> list[str]:
     text = clean(text)
     chunks = chunk(text)
     filteredChunks = filterChunks(chunks)
+
+    if filteredChunks is None or len(filteredChunks) <= 0:
+        logger.error("No usable chunks found.")
+        return []
+
     return filteredChunks
 

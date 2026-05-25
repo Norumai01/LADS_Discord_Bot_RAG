@@ -53,6 +53,9 @@ def splitMessage(text: str, limit: int = 1900) -> list[str]:
         Returns:
             list[str]: A list of message chunks, each within the character limit.
     """
+    if text is None:
+        return []
+
     if len(text) <= limit:
         return [text]
 

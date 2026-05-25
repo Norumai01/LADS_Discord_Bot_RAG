@@ -1,9 +1,8 @@
 import logging
 import os
 from datetime import datetime
-import datefmt
-import fmt
 
+_initialized = False
 
 def initiateLogging (directory: str = "logs", service: str = "default"):
     """
@@ -16,14 +15,16 @@ def initiateLogging (directory: str = "logs", service: str = "default"):
     Returns:
         None
     """
+    global _initialized
+
+    if _initialized:
+        return # Already initialized, no need to reconfigure
+
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
     logFile = os.path.join(directory, f"log_{service}_{timestamp}.log")
-
-    formatConsole = "[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s"
-    dateFmtConsole = "%Y-%m-%d %H:%M:%S"
 
     logging.basicConfig(
         level=logging.DEBUG,
@@ -35,5 +36,10 @@ def initiateLogging (directory: str = "logs", service: str = "default"):
 
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
-    console.setFormatter(logging.Formatter(formatConsole, datefmt=dateFmtConsole))
+    console.setFormatter(logging.Formatter(
+        "[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    ))
     logging.getLogger().addHandler(console)
+
+    _initialized = True
