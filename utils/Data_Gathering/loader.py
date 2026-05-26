@@ -30,11 +30,12 @@ def saveDataToChroma(inputFile: Path | str, character: str) -> None:
         return
 
     chunks: list[str] = processFile(inputFile)
-    logger.info(
-        f"Saved {inputFile.name} to Chroma DB."
-    )
-    # TODO: Save chunks to Chroma DB
     database = ChromaDatabase()
     database.add_chunks(chunks, character, str(inputFile))
+    logger.info(f"Saved {inputFile.name} to Chroma DB.")
 
-    #database.query_chunk(chunks, character) # Debugging purposes
+    # Debugging purposes
+    # database.query_chunk(chunks, character)
+    # database.search_character("dragon curse kills the one he loves", "sylus") # Test 1: something definitely in your data
+    # database.search_character("what is your favourite food", "sylus") # Test 2: something definitely not in your data
+    # database.search_character("who do you love", "sylus") # Test 3: something similar to what you have in your data
