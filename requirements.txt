@@ -7,3 +7,4 @@ playwright
 fmt
 datefmt
 chromadb
+sentence_transformers

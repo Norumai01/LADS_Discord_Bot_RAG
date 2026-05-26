@@ -1,17 +1,26 @@
+import asyncio
+
 import discord
 import logging
 
+from utils.chroma import ChromaDatabase
+
+logger = logging.getLogger(__name__)
+
 def initiateDiscordBot(token: str) -> None:
-    logging.info("Initializing Discord bot...")
+    logger.info("Initializing Discord bot...")
+
+    # Initiate the database
+    database: ChromaDatabase = ChromaDatabase()
+
     intents = discord.Intents.default()
     intents.message_content = True
-
     bot = discord.Client(intents=intents)
 
     @bot.event
     async def on_ready():
         print(f"Online as  {bot.user}")
-        logging.info(f"Online as  {bot.user}")
+        logger.info(f"Online as  {bot.user}")
 
     @bot.event
     async def on_message(message):
@@ -21,25 +30,25 @@ def initiateDiscordBot(token: str) -> None:
             return
 
         # Separate the user's name from the message content
-        botMentionString = bot.user.mention
-        # logging.debug(f"Bot mentioned in message: {botMentionString}")
-        user_input = message.content.replace(botMentionString, "").strip()
-        # logging.debug(f"User input: {user_input}")
-
-        if user_input is not None and user_input != "":
-            # logging.debug(f"Chunks of Message: {chunks}")"
-            # Split the message into chunks if it exceeds the character limit
-            chunks = splitMessage(user_input)
-            # TODO: Query the chunks into RAG Pipeline
-        else:
-            # logging.debug(f"Verify no message (should be empty): {user_input}")
-            # TODO: Replace this with in-game character default response
+        botMentionString: str = bot.user.mention
+        # logger.debug(f"Bot mentioned in message: {botMentionString}")
+        user_input: str = message.content.replace(botMentionString, "").strip()
+        # logger.debug(f"User input: {user_input}")
+        if not user_input:
             return
 
-        logging.info("Message received")
+        # Search through database
+        loop = asyncio.get_event_loop()
+        context = await loop.run_in_executor(
+            None, database.search_character, user_input, "sylus"
+        )
+
+        logger.debug(f"Context: {context}")
+
+        logger.info("Message received")
 
     bot.run(token)
-    logging.info("Discord bot initialized")
+    logger.info("Discord bot initialized")
 
 
 def splitMessage(text: str, limit: int = 1900) -> list[str]:

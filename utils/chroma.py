@@ -29,10 +29,13 @@ class ChromaDatabase:
         self.logger.info("Initializing ChromaDB client...")
         self.client = chromadb.PersistentClient(path=self.db_path)
 
+        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="BAAI/bge-small-en-v1.5"
+        )
         # Get or create the collection
         self.collection = self.client.get_or_create_collection(
             name=self.collection_name,
-            embedding_function=embedding_functions.DefaultEmbeddingFunction(),
+            embedding_function=self.embedding_function,
         )
 
         existing_count = self.collection.count()
