@@ -1,17 +1,21 @@
-import asyncio
-
 import discord
 import logging
 
-from utils.chroma import ChromaDatabase
+from utils.rag_pipeline import ragPipeline
 
 logger = logging.getLogger(__name__)
 
 def initiateDiscordBot(token: str) -> None:
-    logger.info("Initializing Discord bot...")
+    """
+    Initializes and runs the Discord bot.
 
-    # Initiate the database
-    database: ChromaDatabase = ChromaDatabase()
+    Args:
+        token (str): The Discord bot token used for authentication.
+
+    Returns:
+        None
+    """
+    logger.info("Initializing Discord bot...")
 
     intents = discord.Intents.default()
     intents.message_content = True
@@ -35,15 +39,23 @@ def initiateDiscordBot(token: str) -> None:
         user_input: str = message.content.replace(botMentionString, "").strip()
         # logger.debug(f"User input: {user_input}")
         if not user_input:
+            logger.warning("No user input provided after removing bot mention. Returning generic response.")
+            # Return a generic response of that specific character. Awaiting the user message.
+            # await message.channel.send("...")
             return
 
-        # Search through database
-        loop = asyncio.get_event_loop()
-        context = await loop.run_in_executor(
-            None, database.search_character, user_input, "sylus"
-        )
+        # Execute the RAG pipeline
+        response: str = await ragPipeline(user_input, message.author.name)
+        if response is None or response.strip() == "":
+            logger.error("Unable to process pipeline or generate response.")
+            # Return a generic response of that specific character. Saying try again later or something.
+            # await message.channel.send("...")
+            return
 
-        logger.debug(f"Context: {context}")
+        # Split the response into chunks to be send back through Discord, if the response is too long.
+        chunks = splitMessage(response)
+        for chunk in chunks:
+            await message.channel.send(chunk)
 
         logger.info("Message received")
 
