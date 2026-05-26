@@ -39,3 +39,5 @@ def saveDataToChroma(inputFile: Path | str, character: str) -> None:
     # database.search_character("dragon curse kills the one he loves", "sylus") # Test 1: something definitely in your data
     # database.search_character("what is your favourite food", "sylus") # Test 2: something definitely not in your data
     # database.search_character("who do you love", "sylus") # Test 3: something similar to what you have in your data
+    # database.delete_character(character)
+    # database.delete_all_characters()

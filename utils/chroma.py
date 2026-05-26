@@ -160,11 +160,15 @@ class ChromaDatabase:
         Returns:
             None
         """
+        if not character:
+            self.logger.error("Missing required parameter: character")
+            return
+
         self.logger.info(f"Resetting all chunks for {character}...")
         self.collection.delete(
             where={"character": character.lower()}
         )
-        self.logger.info(f"All chunks for {character} have been reset.")
+        self.logger.info(f"All data for {character} have been deleted.")
 
     def delete_all_characters(self) -> None:
         """
@@ -173,9 +177,16 @@ class ChromaDatabase:
         Returns:
             None
         """
+        # Need to get all existing IDs to delete them all
+        existing_ids: list[str] = self.collection.get()["ids"]
+
+        if len(existing_ids) <= 0:
+            self.logger.warning("No chunks to reset.")
+            return
+
         self.logger.info("Resetting all chunks...")
-        self.collection.delete()
-        self.logger.info("All chunks have been reset.")
+        self.collection.delete(ids=existing_ids)
+        self.logger.info("Database reset.")
 
     # Testing purposes
     def query_chunk(self, chunks: list[str], character: str):
