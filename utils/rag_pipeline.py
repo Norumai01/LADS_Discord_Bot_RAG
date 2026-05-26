@@ -27,18 +27,22 @@ async def ragPipeline(user_input: str, username: str) -> str:
         logger.warning("Username is empty. Cannot execute RAG pipeline.")
         return ""
 
-    # Initialize the database    
-    database: ChromaDatabase = ChromaDatabase()
+    # Initialize the character database    
+    character_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="characters_lore")
 
     # Retrieve relevant context from the database based on user input
     loop = asyncio.get_event_loop()
     context: list[str] = await loop.run_in_executor(
-        None, database.search_character, user_input, "sylus"
+        None, character_database.search_character, user_input, "sylus"
     )
     # logger.debug(f"Context: {context}") # Debugging
 
     llm_response: str = llmResponse(user_input, context, username)
-    # logger.debug(f"LLM Response: {response}") # Debugging
+    # logger.debug(f"LLM Response: {llm_response}") # Debugging
+
+    # Save LLM response and user input to the user memory database TODO: Implement this functionality
+    user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
+    # user_memory_database.add_chunks(...)
 
     logger.info("RAG pipeline execution completed.")
     return llm_response

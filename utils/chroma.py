@@ -10,20 +10,20 @@ from chromadb.utils import embedding_functions
 class ChromaDatabase:
     """ChromaDB wrapper with helper methods."""
 
-    def __init__(self, path: str = "./chroma_db", collection_name: str = "documents") -> None:
+    def __init__(self, path: str = "./chroma_db", collection_names: str | list[str] = "documents") -> None:
         """
         Initialize the ChromaDB client and collection.
 
         Args:
             path (str): Path to the ChromaDB database directory.
-            collection_name (str): Name of the ChromaDB collection.
+            collection_name (str | list[str]): Name or list of names to add into ChromaDB collection.
         """
         # Setup logging
         self.logger = logging.getLogger(__name__)
 
         self.logger.info("Initializing ChromaDB...")
         self.db_path = path
-        self.collection_name = collection_name
+        self.collection_names = collection_names
 
         # Initialize the ChromaDB client, also create a database folder if it doesn't exist
         self.logger.info("Initializing ChromaDB client...")
@@ -32,17 +32,27 @@ class ChromaDatabase:
         self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name="BAAI/bge-small-en-v1.5"
         )
-        # Get or create the collection
-        self.collection = self.client.get_or_create_collection(
-            name=self.collection_name,
-            embedding_function=self.embedding_function,
-        )
 
-        existing_count = self.collection.count()
-        if existing_count > 0:
-            self.logger.info(f"Collection '{self.collection_name}' already exists with {existing_count} documents.")
-        else:
-            self.logger.warning(f"Collection '{self.collection_name}' does not exist. Creating...")
+        # Get or create the collection
+        # Force single collection into a list, so we can loop through it and create multiple collections if needed
+        names_list = [self.collection_names] if isinstance(self.collection_names, str) else self.collection_names
+        self.collections = {}
+
+        # Create multiple collections if we provided multiple collection.
+        for name in names_list:
+            self.collections[name] = self.client.get_or_create_collection(
+                name=name,
+                embedding_function=self.embedding_function,
+            )
+
+            if self.collections[name].count() > 0:
+                self.logger.info(f"Collection '{name}' already exists with {self.collections[name].count()} documents.")
+            else:
+                self.logger.warning(f"Collection '{name}' does not exist. Creating...")
+        
+        # Otherwise, only use the single collection provided
+        if isinstance(self.collection_names, str):
+            self.collection = self.collections[self.collection_names]
 
     def add_chunks(self, chunks: list[str], character: str, source_file: str, metadata: Optional[dict] = None) -> None:
         """

@@ -30,7 +30,7 @@ def saveDataToChroma(inputFile: Path | str, character: str) -> None:
         return
 
     chunks: list[str] = processFile(inputFile)
-    database = ChromaDatabase()
+    database = ChromaDatabase("./chroma_db", collection_names="characters_lore") # Use character name as collection name
     database.add_chunks(chunks, character, str(inputFile))
     logger.info(f"Saved {inputFile.name} to Chroma DB.")
 
