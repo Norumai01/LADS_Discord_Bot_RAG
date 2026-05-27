@@ -17,6 +17,9 @@ class ChromaDatabase:
         Args:
             path (str): Path to the ChromaDB database directory.
             collection_name (str | list[str]): Name or list of names to add into ChromaDB collection.
+
+        Returns:
+            None
         """
         # Setup logging
         self.logger = logging.getLogger(__name__)
@@ -79,10 +82,9 @@ class ChromaDatabase:
         added: int = 0
         skipped: int = 0
 
-        existing_ids: list[str] = self.collection.get()["ids"]
-
         for i, chunk in enumerate(chunks):
             doc_id = hashlib.md5(f"{character}_{chunk}".encode("utf-8")).hexdigest()
+            existing_ids: list[str] = self.collection.get(ids=[doc_id])["ids"]
 
             # Check if the chunk hash matches the existing chunks
             # If so, no need to add it again

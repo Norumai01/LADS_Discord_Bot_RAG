@@ -5,12 +5,13 @@ from utils.rag_pipeline import ragPipeline
 
 logger = logging.getLogger(__name__)
 
-def initiateDiscordBot(token: str) -> None:
+def initiateDiscordBot(token: str, character: str) -> None:
     """
     Initializes and runs the Discord bot.
 
     Args:
         token (str): The Discord bot token used for authentication.
+        character (str): The roleplay character that the bot will respond as.
 
     Returns:
         None
@@ -23,8 +24,7 @@ def initiateDiscordBot(token: str) -> None:
 
     @bot.event
     async def on_ready():
-        print(f"Online as  {bot.user}")
-        logger.info(f"Online as  {bot.user}")
+        logger.info(f"Online as {bot.user}, roleplaying as {character.capitalize()}")
 
     @bot.event
     async def on_message(message):
@@ -45,7 +45,7 @@ def initiateDiscordBot(token: str) -> None:
             return
 
         # Execute the RAG pipeline
-        response: str = await ragPipeline(user_input, message.author.name)
+        response: str = await ragPipeline(user_input, message.author.name, character)
         if response is None or response.strip() == "":
             logger.error("Unable to process pipeline or generate response.")
             # Return a generic response of that specific character. Saying try again later or something.

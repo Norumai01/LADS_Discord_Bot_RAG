@@ -23,7 +23,7 @@ def main() -> None:
     if token is None or token == "":
         logger.error("DISCORD_TOKEN is not set in the environment variables.")
         exit(1)
-    initiateDiscordBot(token)
+    initiateDiscordBot(token, "sylus")
 
     logger.info("Discord bot successfully started.")
     
