@@ -1,5 +1,7 @@
 import logging
 
+from utils.RAG.llm import llm
+
 logger = logging.getLogger(__name__)
 
 def llmResponse(user_input: str, context: list[str], username: str) -> str:
@@ -31,9 +33,10 @@ def llmResponse(user_input: str, context: list[str], username: str) -> str:
     contextLLM: str = "\n".join(context)
 
     # Generate response using the LLM with the retrieved context
-    # response: str = llm(user_input, contextLLM, username) # TODO: Implement the actual LLM response generation logic here.
-    response = "Testing, hello world :D"
-
+    response: str = llm(user_input, contextLLM, username) 
+    if response is None or response.strip() == "":
+        logger.error("Something went wrong. LLM did not return a valid response.")
+        return ""
 
     logger.info("LLM response generated.")
     return response

@@ -8,3 +8,4 @@ fmt
 datefmt
 chromadb
 sentence_transformers
+groq
