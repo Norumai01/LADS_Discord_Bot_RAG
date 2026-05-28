@@ -56,9 +56,9 @@ async def ragPipeline(user_input: str, username: str, character: str) -> str:
     # Debugging: Query the user memory database to verify that the data was saved correctly. May need to adjust parameter.
     # user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
     # logger.debug(f"User memory database contents: {user_memory_database.collection.query(
-    #     query_texts=["..."],
+    #     query_texts=["hello world"],
     #     n_results=5,
     # )}")
 
     logger.info("RAG pipeline execution completed.")
-    return ""
+    return llm_response
