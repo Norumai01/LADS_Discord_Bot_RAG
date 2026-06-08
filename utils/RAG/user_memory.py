@@ -45,8 +45,7 @@ def saveToUserMemorySync(user_input: str, llm_response: str, username: str, char
         return
     
     chunk = {
-        "user_input": user_input,
-        "llm_response": llm_response,
+        "conversation": f"User ({username.capitalize()}): {user_input} | {character.capitalize()}: {llm_response}",
         "username": username,
         "character": character,
     }
@@ -59,7 +58,7 @@ def saveToUserMemorySync(user_input: str, llm_response: str, username: str, char
         "username": username,
         "character": character,
         "date_added": str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-        "source_file": f"discord_{username}"
+        # "source_channel": ... # Optional: Include source of the channel on Discord where the conversation took place.
     }
 
     # Add the user memory entry into the collection (or database)

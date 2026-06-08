@@ -9,3 +9,4 @@ datefmt
 chromadb
 sentence_transformers
 groq
+nltk

@@ -4,6 +4,7 @@ import logging
 from utils.RAG.llm_response import llmResponse
 from utils.RAG.user_memory import saveToUserMemory
 from utils.chroma import ChromaDatabase
+from utils.RAG.Data_Cleaning.filterUserInput import filterUserInput
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +51,12 @@ async def ragPipeline(user_input: str, username: str, character: str) -> str:
         logger.error("LLM response is empty. Returning empty response.")
         return ""
 
-    # Save LLM response and user input to the user memory database asynchronously, not bogging down the main pipeline execution
-    asyncio.create_task(saveToUserMemory(user_input, llm_response, username, character))
+    # If user input has meaningful content, save the user input and LLM response to the user memory database.
+    if (filterUserInput(user_input)):
+        logger.info("User input passed the filter. Saving to user memory database.")
+        asyncio.create_task(saveToUserMemory(user_input, llm_response, username, character)) # Asynchronously, not bogging down the main pipeline execution
+    else:
+        logger.info("User input did not pass the filter. Not saving to user memory database.")
     
     # Debugging: Query the user memory database to verify that the data was saved correctly. May need to adjust parameter.
     # user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
