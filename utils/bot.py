@@ -1,6 +1,7 @@
 import discord
 import logging
 
+from utils.RAG.Data_Cleaning import deleteUserMemory
 from utils.rag_pipeline import ragPipeline
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,13 @@ def initiateDiscordBot(token: str, character: str) -> None:
     """
     logger.info("Initializing Discord bot...")
 
+    if not token or token.strip() == "":
+        logger.error("Discord token is empty. Cannot initialize bot.")
+        return
+    if not character or character.strip() == "":
+        logger.error("No character presented. Cannot initialize bot.")
+        return
+
     intents = discord.Intents.default()
     intents.message_content = True
     bot = discord.Client(intents=intents)
@@ -27,7 +35,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
         logger.info(f"Online as {bot.user}, roleplaying as {character.capitalize()}")
 
     @bot.event
-    async def on_message(message):
+    async def on_message(message: discord.Message):
         if message.author == bot.user:
             return
         if bot.user not in message.mentions:
@@ -36,7 +44,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
         # Separate the user's name from the message content
         botMentionString: str = bot.user.mention
         # logger.debug(f"Bot mentioned in message: {botMentionString}")
-        user_input: str = message.content.replace(botMentionString, "").strip()
+        user_input: str = message.clean_content.replace(botMentionString, "").strip()
         # logger.debug(f"User input: {user_input}")
         if not user_input:
             logger.warning("No user input provided after removing bot mention. Returning generic response.")
@@ -45,7 +53,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
             return
 
         # Execute the RAG pipeline
-        response: str = await ragPipeline(user_input, message.author.name, character)
+        response: str = await ragPipeline(message, character)
         if response is None or response.strip() == "":
             logger.error("Unable to process pipeline or generate response.")
             # Return a generic response of that specific character. Saying try again later or something.
@@ -58,6 +66,48 @@ def initiateDiscordBot(token: str, character: str) -> None:
             await message.channel.send(chunk)
 
         logger.info("Message received")
+    
+    @bot.event
+    async def on_message_delete(message: discord.Message):
+        logger.info("Deleting a messsage from user memory database...")
+
+        if message.author.bot:
+            return
+        
+        doc_id = str(message.id)
+        if not doc_id or doc_id.strip() == "":
+            logger.error("Cannot find document ID for deleted message. Skipping...")
+            return
+        
+        status: bool = await deleteUserMemory(doc_id)
+        if status is None:
+            logger.error("Error occurred while trying to delete user memory entry for deleted message.")
+            return
+
+        logger.info(status if f"Deleted user message by {message.author.name}." else f"Failed to delete user message by {message.author.name}.")
+        
+    @bot.event
+    async def on_bulk_message_delete(messages: list[discord.Message]):
+        logger.info("Deleting messages from user memory database...")
+        deleted_ids: list[str] = []
+
+        for message in messages:
+            if message.author.bot:
+                continue
+
+            doc_id = str(message.id)
+            deleted_ids.append(doc_id)
+        
+        if not deleted_ids or len(deleted_ids) == 0:
+            logger.error("No valid document IDs found for bulk deleted messages. Skipping...")
+            return
+        
+        status: bool = await deleteUserMemory(deleted_ids)
+        if status is None:
+            logger.error("Error occurred while trying to delete user memory entries for bulk deleted messages.")
+            return
+
+        logger.info(status if "Messages deleted from user memory database." else "Failed to delete some messages, if not all.")
 
     bot.run(token)
     logger.info("Discord bot initialized")
