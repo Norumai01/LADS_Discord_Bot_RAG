@@ -1,5 +1,4 @@
 import logging
-import discord
 
 from utils.chroma import ChromaDatabase
 

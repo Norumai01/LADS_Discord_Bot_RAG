@@ -6,7 +6,7 @@ from nltk.corpus import stopwords
 # TODO: Figure out a better way to handle nltk downloads 
 # nltk.download('punkt', quiet=True)
 # nltk.download('averaged_perceptron_tagger', quiet=True)
-# nltk.download('stopwords', quiet=True)
+nltk.download('stopwords', quiet=True)
 
 def filterUserInput(user_input) -> bool:
     """

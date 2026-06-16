@@ -1,7 +1,7 @@
 import discord
 import logging
 
-from utils.RAG.Data_Cleaning import deleteUserMemory
+from utils.RAG.Data_Cleaning.deleteUserMemory import deleteUserMemory
 from utils.rag_pipeline import ragPipeline
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
             logger.error("Error occurred while trying to delete user memory entry for deleted message.")
             return
 
-        logger.info(status if f"Deleted user message by {message.author.name}." else f"Failed to delete user message by {message.author.name}.")
+        logger.info(f"Deleted user message by {message.author.name}." if status else f"Failed to delete user message by {message.author.name}.")
         
     @bot.event
     async def on_bulk_message_delete(messages: list[discord.Message]):
@@ -107,7 +107,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
             logger.error("Error occurred while trying to delete user memory entries for bulk deleted messages.")
             return
 
-        logger.info(status if "Messages deleted from user memory database." else "Failed to delete some messages, if not all.")
+        logger.info("Messages deleted from user memory database." if status else "Failed to delete some messages, if not all.")
 
     bot.run(token)
     logger.info("Discord bot initialized")

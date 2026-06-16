@@ -54,7 +54,7 @@ async def ragPipeline(message: discord.Message, character: str) -> str:
         return ""
 
     # If user input has meaningful content, save the user input and LLM response to the user memory database.
-    if (filterUserInput(user_input)):
+    if filterUserInput(user_input):
         logger.info("User input passed the filter. Saving to user memory database.")
         asyncio.create_task(saveToUserMemory(llm_response, message, character)) # Asynchronously, not bogging down the main pipeline execution
     else:
