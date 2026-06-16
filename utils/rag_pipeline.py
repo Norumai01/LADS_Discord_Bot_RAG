@@ -36,10 +36,11 @@ async def ragPipeline(message: discord.Message, character: str) -> str:
     character_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="characters_lore")
 
     # Retrieve relevant context from the database based on user input
-    loop = asyncio.get_event_loop()
-    context: list[str] = await loop.run_in_executor(
-        None, character_database.search_character, user_input, character
-    )
+    # loop = asyncio.get_event_loop()
+    # context: list[str] = await loop.run_in_executor(
+    #     None, character_database.search_character, user_input, character
+    # )
+    context: list[str] = await asyncio.to_thread(character_database.search_character, user_input, character)
     # logger.debug(f"Context: {context}") # Debugging
 
     if context is None or len(context) == 0:
