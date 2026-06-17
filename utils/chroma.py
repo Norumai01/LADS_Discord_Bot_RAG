@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from pathlib import Path
 import random
 from datetime import datetime
 from typing import Optional
@@ -25,7 +26,9 @@ class ChromaDatabase:
         self.logger = logging.getLogger(__name__)
 
         self.logger.info("Initializing ChromaDB...")
+        
         self.db_path = path
+        Path(path).mkdir(parents=True, exist_ok=True)  # Ensure the directory or subdirectories exist
         self.collection_names = collection_names
 
         # Initialize the ChromaDB client, also create a database folder if it doesn't exist
