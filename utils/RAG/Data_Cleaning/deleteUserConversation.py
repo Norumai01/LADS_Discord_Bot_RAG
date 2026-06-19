@@ -1,6 +1,6 @@
 import logging
 
-from utils.sqlite_db import SQLiteDatabase
+from utils.sqlite_db import SQLiteDB
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ async def deleteUserConversation(message_ids: str | list[str]) -> bool:
         return False
 
     # Initialize the SQLite database
-    sqlite_database: SQLiteDatabase = SQLiteDatabase()
+    sqlite_database: SQLiteDB = SQLiteDB()
 
     try:
         await sqlite_database.delete_messages(message_ids)

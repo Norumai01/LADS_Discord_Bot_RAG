@@ -35,10 +35,6 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
     character_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="characters_lore")
 
     # Retrieve relevant context from the database based on user input
-    # loop = asyncio.get_event_loop()
-    # context: list[str] = await loop.run_in_executor(
-    #     None, character_database.search_character, user_input, character
-    # )
     context: list[str] = await asyncio.to_thread(character_database.search_character, user_input, character)
     # logger.debug(f"Context: {context}") # Debugging
 
@@ -56,7 +52,7 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
     # If user input has meaningful content, save the user input and LLM response to the user memory database.
     if filterUserInput(user_input):
         logger.info("User input passed the filter. Saving to user memory database.")
-        asyncio.create_task(saveToUserMemory(llm_response, message, character, user_input)) # Asynchronously, not bogging down the main pipeline execution
+        await saveToUserMemory(llm_response, message, character, user_input) # Asynchronously, not bogging down the main pipeline execution
     else:
         logger.info("User input did not pass the filter. Not saving to user memory database.")
     

@@ -69,7 +69,7 @@ def saveToUserMemorySync(llm_response: str, message: discord.Message, character:
         metadatas=[metadata],
     )
 
-async def saveToUserMemory(llm_response: str, message: discord.Message, character: str, user_input: str) -> None:
+async def saveToUserMemory(llm_response: str, message: discord.Message, character: str, user_input: str) -> bool:
     """
     Asynchronous wrapper for saving the user input and LLM response to the user memory database.
 
@@ -84,7 +84,10 @@ async def saveToUserMemory(llm_response: str, message: discord.Message, characte
     """
     logger.info("Saving to user memory database...")
 
-    # Offload the synchronous save operation to a separate thread to avoid blocking the main event loop
-    await asyncio.to_thread(saveToUserMemorySync, llm_response, message, character, user_input)
-    
-    logger.info("Data successfully saved to user memory database.")
+    try:
+        await asyncio.to_thread(saveToUserMemorySync, llm_response, message, character, user_input)
+        logger.info("Data successfully saved to user memory database.")
+        return True
+    except Exception as e:
+        logger.error(f"Error occurred while trying to save to user memory database: {e}")
+        return False
