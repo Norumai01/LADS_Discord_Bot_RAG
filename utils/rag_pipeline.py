@@ -3,27 +3,26 @@ import logging
 import discord
 
 from utils.RAG.llm_response import llmResponse
+from utils.RAG.recentConversation import saveRecentConversation
 from utils.RAG.user_memory import saveToUserMemory
 from utils.chroma import ChromaDatabase
 from utils.RAG.Data_Cleaning.filterUserInput import filterUserInput
 
 logger = logging.getLogger(__name__)
 
-async def ragPipeline(message: discord.Message, character: str) -> str:
+async def ragPipeline(message: discord.Message, character: str, user_input: str) -> str:
     """
     Executes the Retrieval-Augmented Generation (RAG) pipeline.
 
     Args:
         message (discord.Message): The Discord message object.
-        character (str): The roleplay character that the bot will respond as.    
+        character (str): The roleplay character that the bot will respond as.
+        user_input (str): The user's input message without the bot mention.
 
     Returns:
         str: The generated response based on the user input and context.
     """
     logger.info("Executing RAG pipeline...")
-
-    # Extract user input from the Discord message
-    user_input: str = message.clean_content.strip()
 
     if not user_input or user_input.strip() == "":
         logger.warning("User input is empty. Cannot execute RAG pipeline.")
@@ -57,7 +56,7 @@ async def ragPipeline(message: discord.Message, character: str) -> str:
     # If user input has meaningful content, save the user input and LLM response to the user memory database.
     if filterUserInput(user_input):
         logger.info("User input passed the filter. Saving to user memory database.")
-        asyncio.create_task(saveToUserMemory(llm_response, message, character)) # Asynchronously, not bogging down the main pipeline execution
+        asyncio.create_task(saveToUserMemory(llm_response, message, character, user_input)) # Asynchronously, not bogging down the main pipeline execution
     else:
         logger.info("User input did not pass the filter. Not saving to user memory database.")
     
@@ -67,6 +66,10 @@ async def ragPipeline(message: discord.Message, character: str) -> str:
     #     query_texts=["hello world"],
     #     n_results=5,
     # )}")
+
+    # Save recent conversation to SQLite DB
+    save_recent_convo: bool = await saveRecentConversation(llm_response, message, character, user_input)
+    logger.info("Recent conversation saved" if save_recent_convo else "Failed to save recent conversation.")
 
     logger.info("RAG pipeline execution completed.")
     return llm_response

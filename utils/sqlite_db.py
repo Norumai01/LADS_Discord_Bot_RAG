@@ -3,9 +3,9 @@ import logging
 from pathlib import Path
 
 class SQLiteDB:
-    "Simple wrapper for SQLite database operations."
+    """Simple wrapper for SQLite database operations."""
 
-    def __init__(self, db_path: str = "short_term_chat_logs.db") -> None:
+    def __init__(self, db_path: str = "chat_logs.db") -> None:
         """
         Initialize the SQLite database connection and create the table.
 

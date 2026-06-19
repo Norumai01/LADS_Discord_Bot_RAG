@@ -44,7 +44,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
         # Separate the user's name from the message content
         botMentionString: str = bot.user.mention
         # logger.debug(f"Bot mentioned in message: {botMentionString}")
-        user_input: str = message.clean_content.replace(botMentionString, "").strip()
+        user_input: str = message.content.replace(botMentionString, "").strip()
         # logger.debug(f"User input: {user_input}")
         if not user_input:
             logger.warning("No user input provided after removing bot mention. Returning generic response.")
@@ -53,7 +53,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
             return
 
         # Execute the RAG pipeline
-        response: str = await ragPipeline(message, character)
+        response: str = await ragPipeline(message, character, user_input)
         if response is None or response.strip() == "":
             logger.error("Unable to process pipeline or generate response.")
             # Return a generic response of that specific character. Saying try again later or something.
