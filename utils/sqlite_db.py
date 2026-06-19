@@ -154,24 +154,36 @@ class SQLiteDB:
             self.logger.error(f"Error occurred while clearing chat history: {e}")
             raise
 
-    async def delete_message(self, message_id: str) -> None:
+    async def delete_messages(self, message_id: str | list[str]) -> None:
         """
         Delete a specific message from the chat logs based on the message ID, if user deleted their message.
 
         Args:
-            message_id (str): The Discord ID of the message to delete.
+            message_id (str | list[str]): The Discord ID(s) of the message(s) to delete.
         Returns:
             None
         """
-        self.logger.info(f"Deleting message with ID: {message_id}")
+        # Normalize message_id into a list to stay consistent with other database implementations. 
+        if isinstance(message_id, str):
+            ids_to_delete = [message_id]
+        else:
+            ids_to_delete = list(message_id)
+
+        if not ids_to_delete or len(ids_to_delete) <= 0:
+            self.logger.error("No message IDs provided for deletion.")
+            return
+
+        self.logger.info(f"Deleting {len(ids_to_delete)} message(s) from chat logs...")
+
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM chat_logs WHERE message_id = ?", (message_id,))
+                placeholders = ','.join('?' for _ in ids_to_delete)
+                cursor.execute(f"DELETE FROM chat_logs WHERE message_id IN ({placeholders})", ids_to_delete)
                 conn.commit()
-            self.logger.info(f"Message with ID: {message_id} deleted from chat logs.")
+            self.logger.info(f"Message(s) deleted from chat logs.")
         except sqlite3.Error as e:
-            self.logger.error(f"Error occurred while deleting message: {e}")
+            self.logger.error(f"Error occurred while deleting message(s): {e}")
             raise
 
     def delete_messages_by_user(self, user_id: str) -> None:

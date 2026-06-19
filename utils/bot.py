@@ -1,6 +1,7 @@
 import discord
 import logging
 
+from utils.RAG.Data_Cleaning.deleteUserConversation import deleteUserConversation
 from utils.RAG.Data_Cleaning.deleteUserMemory import deleteUserMemory
 from utils.rag_pipeline import ragPipeline
 
@@ -79,12 +80,17 @@ def initiateDiscordBot(token: str, character: str) -> None:
             logger.error("Cannot find document ID for deleted message. Skipping...")
             return
         
-        status: bool = await deleteUserMemory(doc_id)
-        if status is None:
+        statusChromaDB: bool = await deleteUserMemory(doc_id)
+        if statusChromaDB is None:
             logger.error("Error occurred while trying to delete user memory entry for deleted message.")
             return
+        
+        statusSQLiteDB: bool = await deleteUserConversation(doc_id)
+        if statusSQLiteDB is None:
+            logger.error("Error occurred while trying to delete user conversation entry for deleted message.")
+            return
 
-        logger.info(f"Deleted user message by {message.author.name}." if status else f"Failed to delete user message by {message.author.name}.")
+        logger.info(f"Deleted user message by {message.author.name}." if statusChromaDB and statusSQLiteDB else f"Failed to delete user message by {message.author.name}.")
         
     @bot.event
     async def on_bulk_message_delete(messages: list[discord.Message]):
@@ -102,12 +108,17 @@ def initiateDiscordBot(token: str, character: str) -> None:
             logger.error("No valid document IDs found for bulk deleted messages. Skipping...")
             return
         
-        status: bool = await deleteUserMemory(deleted_ids)
-        if status is None:
+        statusChromaDB: bool = await deleteUserMemory(deleted_ids)
+        if statusChromaDB is None:
             logger.error("Error occurred while trying to delete user memory entries for bulk deleted messages.")
             return
 
-        logger.info("Messages deleted from user memory database." if status else "Failed to delete some messages, if not all.")
+        statusSQLiteDB: bool = await deleteUserConversation(deleted_ids)
+        if statusSQLiteDB is None:
+            logger.error("Error occurred while trying to delete user conversation entries for bulk deleted messages.")
+            return
+
+        logger.info("Messages deleted from user memory database." if statusChromaDB and statusSQLiteDB else "Failed to delete some messages, if not all.")
 
     bot.run(token)
     logger.info("Discord bot initialized")
