@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import logging
 from pathlib import Path
@@ -116,7 +117,7 @@ class ChromaDatabase:
 
         self.logger.info(f"Added {added} chunks, skipped {skipped} existing chunks for {character}.")
 
-    def search_character(self, query: str, character: str, limit: int = 5) -> list[str] | None:
+    async def search_character(self, query: str, character: str, limit: int = 5) -> list[str] | None:
         """
         Search for relevant contexts based on the query and character.
 
@@ -131,12 +132,12 @@ class ChromaDatabase:
 
         self.logger.info(f"Searching query related to {character}...")
         if not query or not character:
-            self.logger.error("Missing required parameters: query or character")
+            self.logger.error("Error: Missing parameters")
             return None
 
         user_input: str = query.lower()
 
-        results = self.collection.query(
+        results = await asyncio.to_thread(self.collection.query,
             query_texts=[user_input],
             n_results=limit,
             where={"character": character.lower()}
@@ -155,18 +156,37 @@ class ChromaDatabase:
         relevant_chunks = [
             chunk for chunk, distance in zip(chunks, distances) if distance < 1.4
         ]
-        relevant_distances = [
-            distance for chunk, distance in zip(chunks, distances) if distance < 1.4
-        ]
+        # relevant_distances = [
+        #     distance for chunk, distance in zip(chunks, distances) if distance < 1.4
+        # ]
 
         chunks = [chunk.strip() for chunk in relevant_chunks]
-        distances = [round(distance, 3) for distance in relevant_distances]
+        # distances = [round(distance, 3) for distance in relevant_distances]
         # Debugging
         # self.logger.debug(f"Relevant chunks: {chunks}")
         # self.logger.debug(f"Relevant distances: {distances}")
 
         self.logger.info(f"Found {len(chunks)} relevant chunks for {character} based on the query.")
         return chunks
+
+    async def delete_ids_chatlog(self, doc_ids: list[str]) -> None:
+        """
+        Deletes specific document IDs from the database. Will likely only be used in user memory collection, to delete entries removed from Discord chatlog.
+
+        Args:
+            doc_ids (list[str]): List of document IDs to delete.
+        
+        Returns:
+            None    
+        """
+        if not doc_ids or len(doc_ids) <= 0:
+            self.logger.error("No valid document IDs provided for deletion.")
+            return
+
+        self.logger.info(f"Deleting {len(doc_ids)} document IDs from the database...")
+
+        await asyncio.to_thread(self.collection.delete, ids=doc_ids)
+        self.logger.info("Document IDs deleted from the database.")
 
     def delete_character(self, character: str) -> None:
         """
@@ -222,4 +242,3 @@ class ChromaDatabase:
             query_texts=["What planet are you from?"],
             n_results=1,
         ))
-

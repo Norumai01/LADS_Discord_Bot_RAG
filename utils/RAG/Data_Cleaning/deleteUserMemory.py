@@ -29,7 +29,7 @@ async def deleteUserMemory(doc_ids: str | list[str]) -> bool:
     user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
 
     try:
-        user_memory_database.collection.delete(ids=doc_ids)
+        await user_memory_database.delete_ids_chatlog(doc_ids)
         logger.info("Successfully deleted user memory entries for document IDs.")
         return True
     except Exception as e:
