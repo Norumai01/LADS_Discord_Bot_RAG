@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 import random
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 import chromadb
 from chromadb.utils import embedding_functions
@@ -167,6 +167,71 @@ class ChromaDatabase:
         # self.logger.debug(f"Relevant distances: {distances}")
 
         self.logger.info(f"Found {len(chunks)} relevant chunks for {character} based on the query.")
+        return chunks
+
+    async def query_database(self, query: str, limit: int = 5, **kwargs) -> list[str] | None:
+        """
+        Search for relevant contexts dynamically based on the query and provided metadata filters.
+
+        Args:
+            query (str): The user input query.
+            limit (int): The maximum number of results to return. Defaults to 5.
+            **kwargs: Additional metadata filters for the search.
+
+        Returns:
+            list[str] | None: A list of relevant contexts, or None if no results are found or errors.
+        """
+        self.logger.info(f"Searching query with metadata filters...")
+        if not query:
+            self.logger.error("Error: Missing query parameter")
+            return None
+
+        user_input: str = query.lower()
+
+        filterParams: dict[str, Any] = {}
+        # Clean and lowercase the values if metadata is string.
+        for key, value in kwargs.items():
+            if value:
+                filterParams[key] = value.lower() if isinstance(value, str) else value
+
+        query_params: dict[str, Any] = {
+            "query_texts": [user_input],
+            "n_results": limit,
+        }
+
+        # Add metadata filters if provided
+        if filterParams:
+            if len(filterParams) == 1:
+                query_params["where"] = filterParams
+            else:
+                query_params["where"] = {
+                    "$and": [{key: {"$eq": value}} for key, value in filterParams.items()]
+                }
+            self.logger.info("Applying metadata filters...")
+        else:
+            self.logger.warning("No metadata filters applied.")
+        # self.logger.debug(f"Query parameters: {query_params}")  # Debugging
+
+        results = await asyncio.to_thread(self.collection.query, **query_params)
+
+        if not results or not results.get("documents") or len(results["documents"]) <= 0:
+            self.logger.error("No results found for the query.")
+            return None
+
+        chunks = results["documents"][0]
+        distances = results["distances"][0]
+
+        relevant_chunks = [
+            chunk for chunk, distance in zip(chunks, distances) if distance < 1.4
+        ]
+
+        if not relevant_chunks or len(relevant_chunks) <= 0:
+            self.logger.error("No relevant chunks found based on the distance threshold.")
+            return None
+
+        chunks = [chunk.strip() for chunk in relevant_chunks]
+
+        self.logger.info(f"Found {len(chunks)} relevant chunks based on the query and metadata filters.")
         return chunks
 
     async def delete_ids_chatlog(self, doc_ids: list[str]) -> None:

@@ -33,14 +33,26 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
 
     # Initialize the character database connection   
     character_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="characters_lore")
+    user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
 
     # Retrieve relevant context from the database based on user input
-    context: list[str] = await character_database.search_character(user_input, character)
+    context: list[str] | None = await character_database.search_character(user_input, character)
     # logger.debug(f"Context: {context}") # Debugging
-
-    if context is None or len(context) == 0:
+    if context is None or len(context) <= 0:
         logger.warning("No relevant context found for the user input. Proceeding with empty context.")
         context = []
+
+    # TODO: Inject additional contexts from recent conversations and user memory if able too.
+    userMemoryContext: list[str] | None = await user_memory_database.query_database(
+        user_input,
+        limit=5,
+        user_id=str(message.author.id),
+        character=character
+    )
+    # logger.debug(f"User memory context: {userMemoryContext}") # Debugging
+    if userMemoryContext is None or len(userMemoryContext) <= 0:
+        logger.warning("No relevant user memory context found for the user input. Proceeding with empty context.")
+        userMemoryContext = []
 
     llm_response: str = llmResponse(user_input, context, message.author.name)
     # logger.debug(f"LLM Response: {llm_response}") # Debugging

@@ -4,7 +4,7 @@ from utils.RAG.llm import llm
 
 logger = logging.getLogger(__name__)
 
-def llmResponse(user_input: str, context: list[str], username: str) -> str:
+def llmResponse(user_input: str, context: list[str] | None, username: str) -> str:
     """
     This function is responsible for generating a response from the language model (LLM) based on the user's input and the retrieved context from the database. 
     It uses the RAG (Retrieval-Augmented Generation) pipeline to combine the retrieved context with the LLM's capabilities to produce a coherent and relevant response.
