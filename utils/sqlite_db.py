@@ -104,12 +104,13 @@ class SQLiteDB:
             self.logger.error(f"Error occurred while appending message to chat logs: {e}")
             raise
         
-    def get_recent_messages(self, character: str, limit: int = 10) -> list[sqlite3.Row]:
+    def get_recent_messages(self, character: str, user_id: str, limit: int = 10) -> list[sqlite3.Row]:
         """
-        Get recent messages for a specific character.
+        Get recent messages for a specific character and the user.
 
         Args:
             character (str): The roleplay character to fetch messages for.
+            user_id (str): The Discord ID of the user to fetch messages for.
             limit (int): The maximum number of messages to retrieve.
 
         Returns:
@@ -121,14 +122,14 @@ class SQLiteDB:
                 cursor.execute(
                     """
                     SELECT * FROM chat_logs
-                    WHERE character = ?
+                    WHERE character = ? AND user_id = ?
                     ORDER BY timestamp DESC
                     LIMIT ?
                     """,
-                    (character, limit),
+                    (character, user_id, limit),
                 )
                 rows = cursor.fetchall()
-                self.logger.info(f"Retrieved {len(rows)} recent messages for character: {character}")
+                self.logger.info(f"Retrieved {len(rows)} recent message(s) for character: {character}")
                 return rows
         except sqlite3.Error as e:
             self.logger.error(f"Error occurred while fetching recent messages: {e}")

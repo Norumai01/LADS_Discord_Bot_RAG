@@ -3,7 +3,7 @@ import logging
 import discord
 
 from utils.RAG.llm_response import llmResponse
-from utils.RAG.recentConversation import saveRecentConversation
+from utils.RAG.recentConversation import saveRecentConversation, getRecentConversation
 from utils.RAG.user_memory import saveToUserMemory
 from utils.chroma import ChromaDatabase
 from utils.RAG.Data_Cleaning.filterUserInput import filterUserInput
@@ -24,6 +24,10 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
     """
     logger.info("Executing RAG pipeline...")
 
+    # ---------------- Validation Checks ----------------
+    if not character or character.strip() == "":
+        logger.warning("Character is empty. Cannot execute RAG pipeline.")
+        return ""
     if not user_input or user_input.strip() == "":
         logger.warning("User input is empty. Cannot execute RAG pipeline.")
         return ""
@@ -31,18 +35,21 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
         logger.warning("Invalid message object. Cannot execute RAG pipeline.")
         return ""
 
+    # ---------------- Initialize Databases ----------------
+
     # Initialize the character database connection   
     character_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="characters_lore")
     user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
 
-    # Retrieve relevant context from the database based on user input
-    context: list[str] | None = await character_database.search_character(user_input, character)
-    # logger.debug(f"Context: {context}") # Debugging
-    if context is None or len(context) <= 0:
-        logger.warning("No relevant context found for the user input. Proceeding with empty context.")
-        context = []
+    # ---------------- Retrieve Context from Databases ----------------
 
-    # TODO: Inject additional contexts from recent conversations and user memory if able too.
+    # Retrieve relevant context from the database based on user input
+    characterContext: list[str] | None = await character_database.search_character(user_input, character)
+    # logger.debug(f"Context: {context}") # Debugging
+    if characterContext is None or len(characterContext) <= 0:
+        logger.warning("No relevant context found for the user input. Proceeding with empty context.")
+        characterContext = []
+
     userMemoryContext: list[str] | None = await user_memory_database.query_database(
         user_input,
         limit=5,
@@ -54,12 +61,23 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
         logger.warning("No relevant user memory context found for the user input. Proceeding with empty context.")
         userMemoryContext = []
 
-    llm_response: str = llmResponse(user_input, context, message.author.name)
+    recentConversationContext: list[dict] | None = await getRecentConversation(message, character, limit=5)
+    # logger.debug(f"Recent conversation context: {recentConversationContext}") # Debugging
+    if recentConversationContext is None or len(recentConversationContext) <= 0:
+        logger.warning("No relevant recent conversation context found for the user input. Proceeding with empty context.")
+        recentConversationContext = []
+
+    # ---------------- Generate LLM Response ----------------
+
+    # TODO: Inject userMemoryContext and recentConversationContext into the prompt.
+    llm_response: str = llmResponse(user_input, characterContext, message.author.name)
     # logger.debug(f"LLM Response: {llm_response}") # Debugging
 
     if llm_response is None or llm_response.strip() == "":
         logger.error("LLM response is empty. Returning empty response.")
         return ""
+
+    # ---------------- Save Conversation Into Databases ----------------
 
     # If user input has meaningful content, save the user input and LLM response to the user memory database.
     if filterUserInput(user_input):
