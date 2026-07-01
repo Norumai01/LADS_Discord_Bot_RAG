@@ -69,8 +69,7 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
 
     # ---------------- Generate LLM Response ----------------
 
-    # TODO: Inject userMemoryContext and recentConversationContext into the prompt.
-    llm_response: str = llmResponse(user_input, characterContext, userMemoryContext, message.author.name)
+    llm_response: str = llmResponse(user_input, characterContext, userMemoryContext, recentConversationContext, message.author.name)
     # logger.debug(f"LLM Response: {llm_response}") # Debugging
 
     if llm_response is None or llm_response.strip() == "":

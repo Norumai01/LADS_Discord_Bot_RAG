@@ -8,13 +8,15 @@ from utils.RAG.sys_prompt import readSystemPrompt
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-def llm(user_input: str, context: str, username: str) -> str:
+def llm(user_input: str, characterContext: str, userLongTermMemory: str, recentConversations: str, username: str) -> str:
     """
     Sends all context, user inputs, and username to an LLM API to generate a response.
 
     Args:
         user_input (str): The input provided by the user.
-        context (str): The retrieved context from the database, combined into a single string.
+        characterContext (list[str]): The retrieved context about the character from the database.
+        userLongTermMemory (list[str]): Long-term memory meaningful conversations between the user and the character.
+        recentConversations (list[dict]): The recent conversations between the user and the character.
         username (str): The username of the user.
 
     Returns:
@@ -38,19 +40,28 @@ def llm(user_input: str, context: str, username: str) -> str:
     prompt: str | None = readSystemPrompt()
     if prompt is None:
         logger.error("System prompt is empty.")
-        return ""
+        return ""  # Cannot proceed without it.
     #logger.debug(f"System prompt: {prompt}") # Debugging
+    if username is None or username.strip() == "":
+        logger.error("No user to respond to. Cannot generate LLM response.")
+        return ""
+    prompt += f"\n\nYou are speaking with: {username}."
 
     # Add relevant context and username to the prompt
-    if username:
-        prompt += f"\n\nYou are speaking with: {username}."
-    if context:
-        prompt += f"\n\nHere is relevant context and in-game dialogues about you:\n{context}"
+    if characterContext and len(characterContext) > 0:
+        prompt += f"\n\nHere is relevant in-game context and in-game dialogues about you:\n{characterContext}"
+    if userLongTermMemory and len(userLongTermMemory) > 0:
+        prompt += f"\n\nConversations long ago between the character and the user (apply if applicable in conversation):\n{userLongTermMemory}"
+    if recentConversations and len(recentConversations) > 0:
+        prompt += f"\n\nRecent conversations between the character and the user (apply if applicable in conversation):\n{recentConversations}"
+
+    # logger.debug("Prompt for LLM:\n" + prompt)  # Debugging
 
     client = groq.Client(api_key=LLM_KEY, timeout=30.0, max_retries=3)
 
     # Generate response
     try:
+        # return "" # Debugging: Uncomment this line to test the RAG pipeline without generating a response from the LLM.
         response = client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[{
@@ -65,7 +76,7 @@ def llm(user_input: str, context: str, username: str) -> str:
             temperature=0.85,
         )
         return response.choices[0].message.content.strip()
-
+        
     except Exception as e:
         logger.error(f"Error generating response: {e}")
         return ""
