@@ -61,7 +61,7 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
         logger.warning("No relevant user memory context found for the user input. Proceeding with empty context.")
         userMemoryContext = []
 
-    recentConversationContext: list[dict] | None = await getRecentConversation(message, character, limit=5)
+    recentConversationContext: list[dict] | None = await getRecentConversation(character, str(message.author.id), limit=5)
     # logger.debug(f"Recent conversation context: {recentConversationContext}") # Debugging
     if recentConversationContext is None or len(recentConversationContext) <= 0:
         logger.warning("No relevant recent conversation context found for the user input. Proceeding with empty context.")
@@ -70,7 +70,7 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
     # ---------------- Generate LLM Response ----------------
 
     # TODO: Inject userMemoryContext and recentConversationContext into the prompt.
-    llm_response: str = llmResponse(user_input, characterContext, message.author.name)
+    llm_response: str = llmResponse(user_input, characterContext, userMemoryContext, message.author.name)
     # logger.debug(f"LLM Response: {llm_response}") # Debugging
 
     if llm_response is None or llm_response.strip() == "":
