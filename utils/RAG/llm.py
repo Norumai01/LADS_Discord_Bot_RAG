@@ -55,7 +55,7 @@ def llm(user_input: str, characterContext: str, userLongTermMemory: str, recentC
     if recentConversations and len(recentConversations) > 0:
         prompt += f"\n\nRecent conversations between the character and the user (apply if applicable in conversation):\n{recentConversations}"
 
-    # logger.debug("Prompt for LLM:\n" + prompt)  # Debugging
+    # logger.debug("Prompt for LLM:\n" + prompt) # Debugging
 
     client = groq.Client(api_key=LLM_KEY, timeout=30.0, max_retries=3)
 

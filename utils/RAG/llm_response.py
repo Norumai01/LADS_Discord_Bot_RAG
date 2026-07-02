@@ -1,4 +1,5 @@
 import logging
+import json
 
 from utils.RAG.llm import llm
 
@@ -39,8 +40,12 @@ def llmResponse(user_input: str, characterContext: list[str] | None, userLongTer
 
     # Combine the retrieved context into a single string
     characterContextLLM: str = "\n".join(characterContext)
-    userLongTermMemoryLLM: str = "\n".join(userLongTermMemory)
-    recentConversationsLLM: str = "\n".join(f"{conv['username']}: {conv['user_input']} | {conv['character']}: {conv['llm_response']}" for conv in recentConversations)
+    userLongTermMemoryLLM: str = "\n".join(
+        json.loads(conv)["conversation"] for conv in userLongTermMemory
+    )
+    recentConversationsLLM: str = "\n".join(
+        f"{conv['username']}: {conv['user_input']} | {conv['character']}: {conv['llm_response']}" for conv in recentConversations
+    )
 
     # Generate response using the LLM with the retrieved context
     response: str = llm(user_input, characterContextLLM, userLongTermMemoryLLM, recentConversationsLLM, username)
