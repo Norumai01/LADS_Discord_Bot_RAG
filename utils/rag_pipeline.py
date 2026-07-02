@@ -2,6 +2,7 @@ import asyncio
 import logging
 import discord
 
+from utils.RAG.llm import llmMemoryFilter
 from utils.RAG.llm_response import llmResponse
 from utils.RAG.recentConversation import saveRecentConversation, getRecentConversation
 from utils.RAG.user_memory import saveToUserMemory
@@ -79,11 +80,12 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
     # ---------------- Save Conversation Into Databases ----------------
 
     # If user input has meaningful content, save the user input and LLM response to the user memory database.
-    if filterUserInput(user_input):
-        logger.info("User input passed the filter. Saving to user memory database.")
-        await saveToUserMemory(llm_response, message, character, user_input) # Asynchronously, not bogging down the main pipeline execution
+    save_to_memory: bool = await llmMemoryFilter(user_input)
+    if save_to_memory:
+        logger.info("User input passed the memory filter. Saving to user memory database.")
+        await saveToUserMemory(llm_response, message, character, user_input) 
     else:
-        logger.info("User input did not pass the filter. Not saving to user memory database.")
+        logger.info("User input did not pass the memory filter. Not saving to user memory database.")
     
     # Debugging: Query the user memory database to verify that the data was saved correctly. May need to adjust parameter.
     # user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")

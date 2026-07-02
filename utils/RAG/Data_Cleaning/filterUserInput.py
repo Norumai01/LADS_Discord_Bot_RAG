@@ -8,40 +8,41 @@ from nltk.corpus import stopwords
 # nltk.download('averaged_perceptron_tagger', quiet=True)
 nltk.download('stopwords', quiet=True)
 
-def filterUserInput(user_input) -> bool:
+def fastFilterUserInput(user_input) -> tuple[bool, str]:
     """
-    Basic validation conditions if we should store user input into the Chroma database.
+    Handles obvious filters for user input before sending it to the LLM for further processing.
 
     Args:
         user_input (str): The input message from the user.
 
     Returns:
-        bool: True if we want the user input stored. Otherwise, False.
+        tuple[bool, str]: A tuple containing a boolean indicating if the input is resolved and a string indicating the decision to store into long-term memory.
     """
     if not user_input or user_input.strip() == "":
-        return False
-    
+        return True, "False"
+
     # First check: Ignore user inputs less than 3 words.
     tokenizer = RegexpTokenizer(r"\w+(?:[-']\w+)*")
     wordCounts = len(tokenizer.tokenize(user_input))
     if wordCounts < 3:
-        return False
-    
+        return True, "False"
+
     # Second check: Fast-pass for normal roleplay conversations.
     rp_markers = ['*', '"', '_', '(', ')', '[', ']']
     if any(marker in user_input for marker in rp_markers):
-        return True
+        return True, "True"
 
     # Third Check: Spam filter
     stop_words = set(stopwords.words('english'))
     words = tokenizer.tokenize(user_input.lower())
     meaningful_words = [word for word in words if word not in stop_words and word not in string.punctuation]
     if not meaningful_words:
-        return False
+        return True, "False"
 
-    # Maybe part of speech check?
-    # pos_tags = nltk.pos_tag(words)
-    # if not any(tag.startswith('NN') or tag.startswith('VB') for word, tag in pos_tags):
-    #     return False
+    # Fourth Check: Don't store basic greetings, phrases, or pleasentries.
+    clean_input = user_input.lower().translate(str.maketrans('', '', string.punctuation)).strip()
+    static_blocks = {"how are you", "how have you been", "whats up", "hello there", "good morning", "good night"}
+    if clean_input in static_blocks:
+        return True, "False"
 
-    return True
+    return False, "PENDING"
