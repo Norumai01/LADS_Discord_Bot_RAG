@@ -7,7 +7,6 @@ from utils.RAG.llm_response import llmResponse
 from utils.RAG.recentConversation import saveRecentConversation, getRecentConversation
 from utils.RAG.user_memory import saveToUserMemory
 from utils.chroma import ChromaDatabase
-from utils.RAG.Data_Cleaning.filterUserInput import filterUserInput
 
 logger = logging.getLogger(__name__)
 

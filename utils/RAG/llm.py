@@ -140,7 +140,9 @@ async def llmMemoryFilter(user_input: str) -> bool:
             temperature=0.0,
         )
         result = response.choices[0].message.content.strip().upper()
+
         # Handles cases where LLM might have unexpected output, ensuring we return true if the result contains "TRUE"
+        logger.info("Saved to memory." if "TRUE" in result else "Not saved to memory.")
         return "TRUE" in result
     
     except Exception as e:
