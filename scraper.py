@@ -18,7 +18,7 @@ URLS: dict[str, list[str]] = {
     ],
 }
 DATA_DIR = Path("data")
-CHROMA_PATH = "./chroma_db"
+CHROMA_PATH = "data/chroma_db"
 
 # Initialize the logging system
 logDir: str = "logs"

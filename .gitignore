@@ -33,7 +33,7 @@ build/
 
 # Database
 *.db
-chroma_db/
+data/chroma_db/
 
 # Other files
 data/

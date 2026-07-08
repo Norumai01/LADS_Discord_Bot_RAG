@@ -2,10 +2,13 @@ import sqlite3
 import logging
 from pathlib import Path
 
+from paths import ROOT
+
+
 class SQLiteDB:
     """Simple wrapper for SQLite database operations."""
 
-    def __init__(self, db_path: str = "chat_logs.db") -> None:
+    def __init__(self, db_path: str = str(ROOT / "data" /"chat_logs.db")) -> None:
         """
         Initialize the SQLite database connection and create the table.
 

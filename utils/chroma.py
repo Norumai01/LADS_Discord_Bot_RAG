@@ -9,10 +9,13 @@ from typing import Optional, Any
 import chromadb
 from chromadb.utils import embedding_functions
 
+from paths import ROOT
+
+
 class ChromaDatabase:
     """ChromaDB wrapper with helper methods."""
 
-    def __init__(self, path: str = "./chroma_db", collection_names: str | list[str] = "documents") -> None:
+    def __init__(self, path: str = str(ROOT / "data" / "chroma_db"), collection_names: str | list[str] = "documents") -> None:
         """
         Initialize the ChromaDB client and collection.
 
@@ -27,7 +30,7 @@ class ChromaDatabase:
         self.logger = logging.getLogger(__name__)
 
         self.logger.info("Initializing ChromaDB...")
-        
+
         self.db_path = path
         Path(path).mkdir(parents=True, exist_ok=True)  # Ensure the directory or subdirectories exist
         self.collection_names = collection_names

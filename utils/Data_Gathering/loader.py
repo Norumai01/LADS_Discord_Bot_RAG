@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+from paths import ROOT
 from utils.RAG.chunker import processFile
 from utils.chroma import ChromaDatabase
 
@@ -30,7 +31,7 @@ def saveDataToChroma(inputFile: Path | str, character: str) -> None:
         return
 
     chunks: list[str] = processFile(inputFile)
-    database = ChromaDatabase("./chroma_db", collection_names="characters_lore") # Use character name as collection name
+    database = ChromaDatabase(str(ROOT / "data" / "chroma_db"), collection_names="characters_lore") # Use character name as collection name
     database.add_chunks(chunks, character, str(inputFile))
     logger.info(f"Saved {inputFile.name} to Chroma DB.")
 
