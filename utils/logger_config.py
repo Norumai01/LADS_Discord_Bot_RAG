@@ -1,6 +1,9 @@
 import logging
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 _initialized = False
 
@@ -17,22 +20,16 @@ def initiateLogging (directory: str = "logs", service: str = "default"):
     """
     global _initialized
 
+    # Logging initialized, so we don't want to reconfigure it again.
     if _initialized:
-        return # Already initialized, no need to reconfigure
+        return
 
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    # Checks if logging to file is enabled/disabled via env.
+    writeLogs: bool = os.getenv("WRITE_LOGS_FILE", "True").lower() == "true"
+    if not writeLogs:
+        print("Logging to file is disabled. Logs will only be printed to console.")
 
-    timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    logFile = os.path.join(directory, f"log_{service}_{timestamp}.log")
-
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        filename=logFile,
-        filemode="a",
-    )
+    handlers = []
 
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
@@ -41,5 +38,26 @@ def initiateLogging (directory: str = "logs", service: str = "default"):
         datefmt="%Y-%m-%d %H:%M:%S"
     ))
     logging.getLogger().addHandler(console)
+
+    if writeLogs:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        logFile = os.path.join(directory, f"log_{service}_{timestamp}.log")
+
+        file_handler = logging.FileHandler(logFile, mode='a')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter(
+            "[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        ))
+        handlers.append(file_handler)
+
+    # Root logger configuration
+    logging.basicConfig(
+        level=logging.DEBUG,
+        handlers=handlers
+    )
 
     _initialized = True
