@@ -2,6 +2,7 @@ import asyncio
 import logging
 import discord
 
+from paths import ROOT
 from utils.RAG.llm import llmMemoryFilter
 from utils.RAG.llm_response import llmResponse
 from utils.RAG.recentConversation import saveRecentConversation, getRecentConversation
@@ -38,8 +39,8 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
     # ---------------- Initialize Databases ----------------
 
     # Initialize the character database connection   
-    character_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="characters_lore")
-    user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
+    character_database: ChromaDatabase = ChromaDatabase(str(ROOT / "data" / "chroma_db"), collection_names="characters_lore")
+    user_memory_database: ChromaDatabase = ChromaDatabase(str(ROOT / "data" / "chroma_db"), collection_names="user_memory")
 
     # ---------------- Retrieve Context from Databases ----------------
 
@@ -87,7 +88,7 @@ async def ragPipeline(message: discord.Message, character: str, user_input: str)
         logger.info("User input did not pass the memory filter. Not saving to user memory database.")
     
     # Debugging: Query the user memory database to verify that the data was saved correctly. May need to adjust parameter.
-    # user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
+    # user_memory_database: ChromaDatabase = ChromaDatabase(str(ROOT / "data" / "chroma_db"), collection_names="user_memory")
     # logger.debug(f"User memory database contents: {user_memory_database.collection.query(
     #     query_texts=["hello world"],
     #     n_results=5,
