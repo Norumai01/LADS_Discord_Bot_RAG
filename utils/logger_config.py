@@ -29,16 +29,18 @@ def initiateLogging (directory: str = "logs", service: str = "default"):
     if not writeLogs:
         print("Logging to file is disabled. Logs will only be printed to console.")
 
-    handlers = []
-
+    # Default console output format
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     console.setFormatter(logging.Formatter(
         "[%(asctime)s] [%(levelname)s] [%(name)s] - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     ))
-    logging.getLogger().addHandler(console)
 
+    # Output to console and file if enabled
+    handlers = [console]
+
+    # File output configuration, if enabled
     if writeLogs:
         if not os.path.exists(directory):
             os.makedirs(directory)
