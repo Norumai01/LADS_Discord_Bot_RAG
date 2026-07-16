@@ -1,0 +1,8 @@
+discord.py
+aiohttp
+python-dotenv
+httpx
+chromadb
+sentence_transformers
+groq
+nltk
