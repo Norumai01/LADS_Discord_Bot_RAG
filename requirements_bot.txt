@@ -2,10 +2,6 @@ discord.py
 aiohttp
 python-dotenv
 httpx
-beautifulsoup4
-playwright
-fmt
-datefmt
 chromadb
 sentence_transformers
 groq

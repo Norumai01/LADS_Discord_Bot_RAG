@@ -1,0 +1,14 @@
+.git
+.gitignore
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+logs/
+data/
+chroma_db/
+chat_logs.db
+.env
+.vscode/
+.idea/

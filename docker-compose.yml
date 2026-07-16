@@ -1,0 +1,19 @@
+services:
+  bot:
+    build: .
+    image: lads-discord-bot:latest
+    container_name: lads-discord-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G

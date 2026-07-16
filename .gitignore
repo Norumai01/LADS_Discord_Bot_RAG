@@ -30,3 +30,10 @@ nosetests.xml
 *.egg-info/
 dist/
 build/
+
+# Database
+*.db
+data/chroma_db/
+
+# Other files
+data/
