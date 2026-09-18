@@ -3,6 +3,7 @@ import json
 import logging
 import discord
 
+from paths import ROOT
 from utils.chroma import ChromaDatabase
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def saveToUserMemorySync(llm_response: str, message: discord.Message, character:
         return
 
     # Initialize the user memory database    
-    user_memory_database: ChromaDatabase = ChromaDatabase("./chroma_db", collection_names="user_memory")
+    user_memory_database: ChromaDatabase = ChromaDatabase(str(ROOT / "data" / "chroma_db"), collection_names="user_memory")
     
     doc_id = str(message.id)
 

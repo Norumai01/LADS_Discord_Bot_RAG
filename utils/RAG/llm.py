@@ -25,8 +25,8 @@ def llm(user_input: str, characterContext: str, userLongTermMemory: str, recentC
         str: The generated response from the LLM.
     """
     LLM_KEY = os.getenv("LLM_KEY")
-    GROQ_MODEL = os.getenv("GROQ_MODEL") or "meta-llama/llama-4-scout-17b-16e-instruct"
-    MAX_TOKENS: int = 400
+    GROQ_MODEL = os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b"
+    MAX_TOKENS: int = 750
 
     if LLM_KEY is None or LLM_KEY == "":
         logger.error("LLM_KEY is not set in the environment variables.")
@@ -95,8 +95,8 @@ async def llmMemoryFilter(user_input: str) -> bool:
     """
     # Placeholder implementation - replace with actual memory filtering logic
     LLM_KEY = os.getenv("LLM_KEY")
-    GROQ_MODEL = os.getenv("GROQ_MODEL") or "meta-llama/llama-4-scout-17b-16e-instruct"
-    MAX_TOKENS: int = 10
+    GROQ_MODEL = os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b"
+    MAX_TOKENS: int = 150
 
     if LLM_KEY is None or LLM_KEY == "":
         logger.error("LLM_KEY is not set in the environment variables.")
@@ -137,8 +137,14 @@ async def llmMemoryFilter(user_input: str) -> bool:
                 "content": f"User Message: {user_input}"
             }],
             max_tokens=MAX_TOKENS,
+            reasoning_effort="low",
             temperature=0.0,
         )
+
+        finish_reason = response.choices[0].finish_reason
+        if finish_reason != "stop":
+            logger.warning(f"Memory filter completion did not finish cleanly (finish_reason={finish_reason}). Raw response: {response}")
+
         result = response.choices[0].message.content.strip().upper()
 
         # Handles cases where LLM might have unexpected output, ensuring we return true if the result contains "TRUE"
