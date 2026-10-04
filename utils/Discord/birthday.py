@@ -11,7 +11,13 @@ JSON_FILE = str(ROOT / "data" / "birthday.json")
 
 logger = logging.getLogger(__name__)
 
-def loadBirthdayData():
+def loadBirthdayData() -> dict:
+    """
+    Load birthday data from the file.
+
+    Return:
+        Birthday data or empty dictionary
+    """
     if not os.path.exists(JSON_FILE):
         logger.warning("Birthday data file not found.")
         return {}
@@ -24,11 +30,76 @@ def loadBirthdayData():
             return {}
 
 def saveBirthdayData(data) -> None:
+    """
+    Save birthday data to the file.
+
+    Args:
+        data: Birthday data to save
+
+    Returns:
+        None
+    """
     with open(JSON_FILE, "w") as f:
         logger.info("Saving birthday to data file...")
         json.dump(data, f, indent=4)
 
-async def runImmediateTest(bot, targetID: str | None = None):
+def extractUserIDFromMention(mentionUser: str) -> int | None:
+    """
+    Extract user ID from mention string.
+
+    Args:
+        mentionUser: Mention string
+    Return:
+        User ID or None if invalid mention
+    """
+    match = re.search(r"<@!?(\d+)>", mentionUser)
+    if match:
+        return int(match.group(1))
+    return None
+
+async def pingBirthdayMessage(bot, message: discord.Message, targetUser: str | None = None) -> None:
+    """
+    Announce a birthday message to a user on server.
+
+    Args:
+        bot: Discord bot instance
+        message: Discord message object
+        targetUser: Mention string of the user to ping
+
+    Return:
+        None
+    """
+    logger.info("Skipping birthday schedule search. Sending birthday message to user...")
+
+    targetID: int | None = extractUserIDFromMention(targetUser) if targetUser else None
+    if not targetID:
+        logger.error("Invalid user mention provided.")
+        return
+
+    if not message.guild:
+        logger.error("Message is not send on the server.")
+        return
+
+    targetMember: discord.Member | None = message.guild.get_member(targetID)
+    if not targetMember:
+        logger.error(f"User with ID {targetID} not found in the server.")
+        await message.channel.send("User not found.")
+        return
+
+    # TODO: Implement actual birthday message
+    logger.info("Message announced to user.")
+
+async def runImmediateTest(bot, targetID: str | None = None) -> None:
+    """
+    Run an immediate test to send a test private message to user for testing purposes.
+
+    Args:
+        bot: Discord bot instance
+        targetID: User ID to send the test message to
+
+    Return:
+        None
+    """
     logger.info("Bypassing birthday schedule. Attempting to send test right now...")
 
     birthday: dict = loadBirthdayData()

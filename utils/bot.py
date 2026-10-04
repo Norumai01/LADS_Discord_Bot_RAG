@@ -5,7 +5,7 @@ from discord.ext import commands
 from utils.RAG.Data_Cleaning.deleteUserConversation import deleteUserConversation
 from utils.RAG.Data_Cleaning.deleteUserMemory import deleteUserMemory
 from utils.rag_pipeline import ragPipeline
-from utils.Discord.birthday import runImmediateTest
+from utils.Discord.birthday import runImmediateTest, pingBirthdayMessage
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
 
     intents = discord.Intents.default()
     intents.message_content = True
+    intents.members = True
     bot = commands.Bot(command_prefix="!", intents=intents)
 
     # Birthday Events Listener
@@ -128,6 +129,70 @@ def initiateDiscordBot(token: str, character: str) -> None:
     bot.run(token)
     logger.info("Discord bot initialized")
 
+def setupBirthdayEvents(bot: discord.Bot) -> None:
+    """
+        Sets up birthday listener and commands events for the Discord bot
+
+        Args:
+            bot (discord.Bot): The Discord bot instance.
+    """
+    logger.info("Setting up birthday events...")
+
+    async def pingBirthdayMessageListener(message: discord.Message) -> None:
+        """
+        Listener helper to process ping birthday message command.
+
+        Args:
+            message: The Discord message object.
+
+        Returns:
+            None
+        """
+        messagesPart = message.content.strip().split(maxsplit=10)
+        commandWord = messagesPart[0].lower()
+        targetUser = messagesPart[1] if len(messagesPart) > 1 else None
+
+        if message.author.bot:
+            return
+        if commandWord != "!birthday":
+            return
+        if targetUser is None:
+            return
+        if len(messagesPart) != 2:
+            return
+
+        await pingBirthdayMessage(bot, message ,targetUser)
+
+    async def birthdayTestCommandListener(message: discord.Message) -> None:
+        """
+        Listener helper to process test command only usable by bot owner.
+
+        Args:
+            message: The Discord message object.
+
+        Returns:
+            None
+        """
+        OWNER_ID: int = 271839706109575168  # Discord owner ID. Replace with your own ID
+
+        messageParts = message.content.strip().split(maxsplit=10)
+        commandWord = messageParts[0].lower()
+        targetUserID: str | None = messageParts[1] if len(messageParts) > 1 else None
+
+        if message.author.bot: # Do not process messages from bots
+            return
+        if commandWord != "!test": # Do not process if command is not "!test"
+            return
+        if len(messageParts) != 2: # Do not process if there are not exactly two parts in the message
+            return
+        if message.author.id != OWNER_ID: # Do not process if the author is not the owner
+            return
+
+        await runImmediateTest(bot, targetUserID)
+
+    bot.add_listener(pingBirthdayMessageListener, "on_message")
+    bot.add_listener(birthdayTestCommandListener, "on_message")
+    logger.info("Birthday events setup complete.")
 
 def splitMessage(text: str, limit: int = 1900) -> list[str]:
     """
@@ -164,33 +229,3 @@ def splitMessage(text: str, limit: int = 1900) -> list[str]:
         chunks.append(text)
 
     return chunks
-
-def setupBirthdayEvents(bot: discord.Bot) -> None:
-    """
-        Sets up birthday listener and commands events for the Discord bot
-
-        Args:
-            bot (discord.Bot): The Discord bot instance.
-    """
-    logger.info("Setting up birthday events...")
-
-    async def birthdayTestCommandListener(message: discord.Message) -> None:
-        OWNER_ID: int = 271839706109575168  # Discord owner ID
-
-        messageParts = message.content.strip().split(maxsplit=10)
-        commandWord = messageParts[0].lower()
-        targetUserID: str | None = messageParts[1] if len(messageParts) > 1 else None
-
-        if message.author.bot: # Do not process messages from bots
-            return
-        if commandWord != "!test": # Do not process if command is not "!test"
-            return
-        if len(messageParts) != 2: # Do not process if there are not exactly two parts in the message
-            return
-        if message.author.id != OWNER_ID: # Do not process if the author is not the owner
-            return
-
-        await runImmediateTest(bot, targetUserID)
-
-    bot.add_listener(birthdayTestCommandListener, "on_message")
-    logger.info("Birthday events setup complete.")
