@@ -89,6 +89,55 @@ async def pingBirthdayMessage(bot, message: discord.Message, targetUser: str | N
     # TODO: Implement actual birthday message
     logger.info("Message announced to user.")
 
+async def saveUserBirthday(message: discord.Message, birthdate: str) -> None:
+    """
+    Save user birthday data to file.
+
+    Args:
+        message: Discord message object
+        birthdate: User birthday in format "MM-DD"
+
+    Returns:
+        None
+    """
+    logger.info(f"Saving birthday data for user with ID {message.author.id}...")
+    userID: int = message.author.id
+    username: str = message.author.name
+    birthdateMonth: int = int(birthdate.split("-")[0])
+    birthdateDay: int = int(birthdate.split("-")[1])
+
+    if not message.guild:
+        logger.error("Command only work on a server.")
+        return
+
+    targetMember: discord.Member | None = message.guild.get_member(userID)
+    if not targetMember:
+        logger.error(f"User with ID {userID} not found in the server.")
+        await message.channel.send("User not found in the server.")
+        return
+
+    # Validate date
+    try:
+        datetime.date(2000, birthdateMonth, birthdateDay)
+    except Exception:
+        logger.error("Invalid birthday format.")
+        await message.channel.send("Invalid birthday format. Please use MM-DD (e.g., `10-15` or `05-21`).")
+        return
+
+    birthdayData: dict = loadBirthdayData()
+
+    birthdayData[str(userID)] = {
+        "name": username,
+        "month": birthdateMonth,
+        "day": birthdateDay,
+        "hour": 9,
+        "minute": 0
+    }
+
+    saveBirthdayData(birthdayData)
+    await message.channel.send("Successfully set birthday!")
+    logger.info("Birthday data saved successfully.")
+
 async def runImmediateTest(bot, targetID: str | None = None) -> None:
     """
     Run an immediate test to send a test private message to user for testing purposes.

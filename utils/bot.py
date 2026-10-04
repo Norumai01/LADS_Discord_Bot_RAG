@@ -5,7 +5,7 @@ from discord.ext import commands
 from utils.RAG.Data_Cleaning.deleteUserConversation import deleteUserConversation
 from utils.RAG.Data_Cleaning.deleteUserMemory import deleteUserMemory
 from utils.rag_pipeline import ragPipeline
-from utils.Discord.birthday import runImmediateTest, pingBirthdayMessage
+from utils.Discord.birthday import runImmediateTest, pingBirthdayMessage, saveUserBirthday
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
     
     @bot.event
     async def on_message_delete(message: discord.Message):
-        logger.info("Deleting a messsage from user memory database...")
+        logger.info("Deleting a message from user memory database...")
 
         if message.author.bot:
             return
@@ -141,6 +141,7 @@ def setupBirthdayEvents(bot: discord.Bot) -> None:
     async def pingBirthdayMessageListener(message: discord.Message) -> None:
         """
         Listener helper to process ping birthday message command.
+        Format: !birthday @username
 
         Args:
             message: The Discord message object.
@@ -163,9 +164,41 @@ def setupBirthdayEvents(bot: discord.Bot) -> None:
 
         await pingBirthdayMessage(bot, message ,targetUser)
 
+    async def saveUserBirthdayListener(message: discord.Message) -> None:
+        """
+        Listener helper to process save user birthday command.
+        Format: !savebirthday MM-DD
+
+        Args:
+            message: The Discord message object.
+
+        Returns:
+            None
+        """
+        messageParts = message.content.strip().split(maxsplit=10)
+        commandWord = messageParts[0].lower()
+        birthdate: str | None = messageParts[1] if len(messageParts) > 1 else None
+
+        if message.author.bot:
+            return
+        if commandWord != "!savebirthday":
+            return
+        if birthdate is None:
+            logger.error("Invalid birthday format.")
+            await message.channel.send("Invalid birthday format. Please use MM-DD (e.g., `10-15` or `05-21`).")
+            return
+        if len(messageParts) != 2:
+            logger.error("Invalid birthday format.")
+            await message.channel.send("Invalid birthday format. Please use MM-DD (e.g., `10-15` or `05-21`).")
+            return
+
+        await saveUserBirthday(message, birthdate)
+
+
     async def birthdayTestCommandListener(message: discord.Message) -> None:
         """
         Listener helper to process test command only usable by bot owner.
+        Format: !test <user_id>
 
         Args:
             message: The Discord message object.
@@ -191,6 +224,7 @@ def setupBirthdayEvents(bot: discord.Bot) -> None:
         await runImmediateTest(bot, targetUserID)
 
     bot.add_listener(pingBirthdayMessageListener, "on_message")
+    bot.add_listener(saveUserBirthdayListener, "on_message")
     bot.add_listener(birthdayTestCommandListener, "on_message")
     logger.info("Birthday events setup complete.")
 
