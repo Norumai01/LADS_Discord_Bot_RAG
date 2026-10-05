@@ -6,6 +6,7 @@ import discord
 import logging
 
 from paths import ROOT
+from utils.RAG.llm import sendBirthdayMessage
 
 JSON_FILE = str(ROOT / "data" / "birthday.json")
 
@@ -57,7 +58,7 @@ def extractUserIDFromMention(mentionUser: str) -> int | None:
         return int(match.group(1))
     return None
 
-async def pingBirthdayMessage(bot, message: discord.Message, targetUser: str | None = None) -> None:
+async def pingBirthdayMessage(message: discord.Message, targetUser: str | None = None) -> str | None:
     """
     Announce a birthday message to a user on server.
 
@@ -86,7 +87,16 @@ async def pingBirthdayMessage(bot, message: discord.Message, targetUser: str | N
         await message.channel.send("User not found.")
         return
 
-    # TODO: Implement actual birthday message
+    aiResponse: str | None = await sendBirthdayMessage(targetUser if targetUser else targetMember.name)
+    if not aiResponse:
+        logger.error("Failed to send birthday message.")
+        await message.channel.send("Failed to send birthday message.")
+        return
+
+    # Mention username and birthday message
+    finalResponse: str =  f"<@{targetID}>\n{aiResponse}"
+
+    await message.channel.send(finalResponse)
     logger.info("Message announced to user.")
 
 async def saveUserBirthday(message: discord.Message, birthdate: str) -> None:

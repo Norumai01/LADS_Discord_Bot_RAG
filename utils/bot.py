@@ -162,7 +162,7 @@ def setupBirthdayEvents(bot: discord.Bot) -> None:
         if len(messagesPart) != 2:
             return
 
-        await pingBirthdayMessage(bot, message ,targetUser)
+        await pingBirthdayMessage(message ,targetUser)
 
     async def saveUserBirthdayListener(message: discord.Message) -> None:
         """
