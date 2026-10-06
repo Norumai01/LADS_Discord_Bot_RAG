@@ -1,6 +1,7 @@
 import discord
 import logging
 from discord.ext import commands, tasks
+from discord.ext.commands import Bot
 
 from utils.RAG.Data_Cleaning.deleteUserConversation import deleteUserConversation
 from utils.RAG.Data_Cleaning.deleteUserMemory import deleteUserMemory
@@ -129,7 +130,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
     bot.run(token)
     logger.info("Discord bot initialized")
 
-def setupBirthdayEvents(bot: discord.Bot) -> None:
+def setupBirthdayEvents(bot: Bot) -> None:
     """
         Sets up birthday listener and commands events for the Discord bot
 
