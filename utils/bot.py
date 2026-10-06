@@ -130,7 +130,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
     bot.run(token)
     logger.info("Discord bot initialized")
 
-def setupBirthdayEvents(bot: Bot) -> None:
+def setupBirthdayEvents(bot: commands.Bot) -> None:
     """
         Sets up birthday listener and commands events for the Discord bot
 
