@@ -154,3 +154,75 @@ async def llmMemoryFilter(user_input: str) -> bool:
     except Exception as e:
         logger.error(f"Error during LLM memory filtering: {e}")
         return False
+
+async def sendBirthdayMessage(targetUser: str) -> str | None:
+    """
+    Prompt LLM to generate a birthday message for the given user
+
+    Args:
+        targetUser (str): The Discord username of the user to generate a birthday message for.
+
+    Returns:
+        str: The generated birthday message.
+    """
+
+    LLM_KEY = os.getenv("LLM_KEY")
+    GROQ_MODEL = os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b"
+    MAX_TOKENS: int = 800
+
+    if LLM_KEY is None or LLM_KEY == "":
+        logger.error("LLM_KEY is not set in the environment variables.")
+        return ""
+    if GROQ_MODEL is None or GROQ_MODEL == "":
+        logger.error("GROQ_MODEL is not set in the environment variables.")
+        return ""
+    if MAX_TOKENS is None or MAX_TOKENS <= 0:
+        logger.error("MAX_TOKENS is not set in the environment variables or is not a valid positive integer.")
+        return ""
+
+    LLM_CLIENT = groq.AsyncGroq(api_key=LLM_KEY, timeout=30.0, max_retries=3)
+    if LLM_CLIENT is None:
+        logger.error("Failed to initialize LLM client.")
+        return ""
+
+    # System prompt
+    prompt: str | None = readSystemPrompt()
+    if prompt is None:
+        logger.error("System prompt is empty.")
+        return ""  # Cannot proceed without it.
+
+    overallPrompt: str = prompt + birthdayPrompt(targetUser)
+
+    try:
+        response = await LLM_CLIENT.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": overallPrompt
+                },
+            ],
+            temperature=0.85,
+            max_tokens=MAX_TOKENS,
+        )
+
+        finish_reason = response.choices[0].finish_reason
+        if finish_reason != "stop":
+            logger.warning(
+                f"Memory filter completion did not finish cleanly (finish_reason={finish_reason}). Raw response: {response}")
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        logger.error(f"Error during LLM memory filtering: {e}")
+        return ""
+
+def birthdayPrompt(targetUser: str) -> str:
+    birthday_context = f"""
+    \n[Current Situation - CRITICAL OBJECTIVE]
+    Today is {targetUser}'s birthday. You are initiating a private Direct Message to surprise them out of nowhere. 
+    - You are the one starting the conversation; do not act like you are replying to a prior message.
+    - Deliver a teasing, flirtatious, yet genuinely protective birthday greeting. 
+    - Maintain your dangerous gentleman persona—make it clear you didn't forget their special day, and that you expect their full attention today."""
+
+    return birthday_context

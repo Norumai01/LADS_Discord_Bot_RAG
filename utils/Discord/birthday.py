@@ -1,0 +1,245 @@
+import datetime
+import json
+import os
+import re
+import discord
+import logging
+from zoneinfo import ZoneInfo
+
+from paths import ROOT
+from utils.RAG.llm import sendBirthdayMessage
+
+JSON_FILE = str(ROOT / "data" / "birthday.json")
+
+logger = logging.getLogger(__name__)
+
+def loadBirthdayData() -> dict:
+    """
+    Load birthday data from the file.
+
+    Return:
+        Birthday data or empty dictionary
+    """
+    if not os.path.exists(JSON_FILE):
+        logger.warning("Birthday data file not found.")
+        return {}
+    with open(JSON_FILE, "r") as f:
+        try:
+            logger.info("Loaded birthday data file.")
+            return json.load(f)
+        except json.JSONDecodeError:
+            logger.error("Error decoding birthday data file.")
+            return {}
+
+def saveBirthdayData(data) -> None:
+    """
+    Save birthday data to the file.
+
+    Args:
+        data: Birthday data to save
+
+    Returns:
+        None
+    """
+    with open(JSON_FILE, "w") as f:
+        logger.info("Saving birthday to data file...")
+        json.dump(data, f, indent=4)
+
+def extractUserIDFromMention(mentionUser: str) -> int | None:
+    """
+    Extract user ID from mention string.
+
+    Args:
+        mentionUser: Mention string
+    Return:
+        User ID or None if invalid mention
+    """
+    match = re.search(r"<@!?(\d+)>", mentionUser)
+    if match:
+        return int(match.group(1))
+    return None
+
+async def pingBirthdayMessage(message: discord.Message, targetUser: str | None = None) -> str | None:
+    """
+    Announce a birthday message to a user on server.
+
+    Args:
+        bot: Discord bot instance
+        message: Discord message object
+        targetUser: Mention string of the user to ping
+
+    Return:
+        None
+    """
+    logger.info("Skipping birthday schedule search. Sending birthday message to user...")
+
+    targetID: int | None = extractUserIDFromMention(targetUser) if targetUser else None
+    if not targetID:
+        logger.error("Invalid user mention provided.")
+        return
+
+    if not message.guild:
+        logger.error("Message is not send on the server.")
+        return
+
+    targetMember: discord.Member | None = message.guild.get_member(targetID)
+    if not targetMember:
+        logger.error(f"User with ID {targetID} not found in the server.")
+        await message.channel.send("User not found.")
+        return
+
+    aiResponse: str | None = await sendBirthdayMessage(targetUser if targetUser else targetMember.name)
+    if not aiResponse:
+        logger.error("Failed to send birthday message.")
+        await message.channel.send("Failed to send birthday message.")
+        return
+
+    # Mention username and birthday message
+    finalResponse: str =  f"<@{targetID}>\n{aiResponse}"
+
+    await message.channel.send(finalResponse)
+    logger.info("Message announced to user.")
+
+async def checkScheduleBirthdays(bot: discord.Client) -> None:
+    """
+    Background worker that runs every minute to scan for birthdays and send messages.
+
+    Args:
+        bot: Discord client object
+
+    Returns:
+        None
+    """
+    logger.debug("Checking for birthdays...")
+
+    birthdays: dict = loadBirthdayData()
+    if not birthdays:
+        return
+
+    targetTimeZone = ZoneInfo("America/New_York")
+    currDateTime = datetime.datetime.now(targetTimeZone)
+
+    # birthdayData hour and minute is military time
+    for userID, birthdayData in birthdays.items():
+        if (
+            currDateTime.month == birthdayData["month"] and
+            currDateTime.day == birthdayData["day"] and
+            currDateTime.hour == birthdayData.get("hour", 7) and
+            currDateTime.minute == birthdayData.get("minute", 0)
+        ):
+            logger.info(f"Birthday match found for user with ID {userID}. Sending birthday message...")
+
+            try:
+                user: discord.User = await bot.fetch_user(int(userID))
+                if not user:
+                    logger.error(f"Failed to fetch user with ID {userID}.")
+                    continue
+
+                aiResponse: str | None = await sendBirthdayMessage(user.name)
+                if not aiResponse:
+                    logger.error(f"Failed to send birthday message to user with ID {userID}.")
+                    continue
+
+                # Mention username and birthday message
+                finalResponse: str = f"<@{userID}>\n{aiResponse}"
+
+                await user.send(finalResponse)
+                logger.info(f"Message sent to user with ID {userID}.")
+            except discord.Forbidden:
+                logger.error(f"Failed to send birthday message to user with ID {userID}. DM is blocked.")
+                continue
+            except discord.HTTPException:
+                logger.error(f"Failed to send birthday message to user with ID {userID}.")
+                continue
+            except Exception as e:
+                logger.error(f"Failed to send birthday message to user with ID {userID}. Unexpected error: {e}")
+
+    logger.debug("Birthday check complete.")
+
+async def saveUserBirthday(message: discord.Message, birthdate: str) -> None:
+    """
+    Save user birthday data to file.
+
+    Args:
+        message: Discord message object
+        birthdate: User birthday in format "MM-DD"
+
+    Returns:
+        None
+    """
+    logger.info(f"Saving birthday data for user with ID {message.author.id}...")
+    userID: int = message.author.id
+    username: str = message.author.name
+    birthdateMonth: int = int(birthdate.split("-")[0])
+    birthdateDay: int = int(birthdate.split("-")[1])
+
+    if not message.guild:
+        logger.error("Command only work on a server.")
+        return
+
+    targetMember: discord.Member | None = message.guild.get_member(userID)
+    if not targetMember:
+        logger.error(f"User with ID {userID} not found in the server.")
+        await message.channel.send("User not found in the server.")
+        return
+
+    # Validate date
+    try:
+        datetime.date(2000, birthdateMonth, birthdateDay)
+    except Exception:
+        logger.error("Invalid birthday format.")
+        await message.channel.send("Invalid birthday format. Please use MM-DD (e.g., `10-15` or `05-21`).")
+        return
+
+    birthdayData: dict = loadBirthdayData()
+
+    birthdayData[str(userID)] = {
+        "name": username,
+        "month": birthdateMonth,
+        "day": birthdateDay,
+        "hour": 7,  # Military time
+        "minute": 0
+    }
+
+    saveBirthdayData(birthdayData)
+    await message.channel.send("Successfully set birthday!")
+    logger.info("Birthday data saved successfully.")
+
+async def runImmediateTest(bot, targetID: str | None = None) -> None:
+    """
+    Run an immediate test to send a test private message to user for testing purposes.
+
+    Args:
+        bot: Discord bot instance
+        targetID: User ID to send the test message to
+
+    Return:
+        None
+    """
+    logger.info("Bypassing birthday schedule. Attempting to send test right now...")
+
+    birthday: dict = loadBirthdayData()
+    if not birthday:
+        logger.error("Birthday data file is empty or does not exist.")
+        return
+
+    if targetID:
+        if targetID not in birthday:
+            logger.error(f"User with ID {targetID} not found in birthday data.")
+            return
+
+    for user_id, birthday_data in birthday.items():
+        try:
+            if user_id != targetID:
+                continue
+
+            user: discord.User = await bot.fetch_user(int(user_id))
+
+            # Send them a test message
+            await user.send(f"Test message from bot!")
+        except discord.Forbidden:
+            logger.error(f"Failed to send test message to user {user_id}. Private message blocked.")
+        except Exception as e:
+            logger.error(f"Failed to send test message to user {user_id}. Error: {e}")
+
+    logger.info("Test message sent.")

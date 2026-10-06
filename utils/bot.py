@@ -1,9 +1,11 @@
 import discord
 import logging
+from discord.ext import commands, tasks
 
 from utils.RAG.Data_Cleaning.deleteUserConversation import deleteUserConversation
 from utils.RAG.Data_Cleaning.deleteUserMemory import deleteUserMemory
 from utils.rag_pipeline import ragPipeline
+from utils.Discord.birthday import runImmediateTest, pingBirthdayMessage, saveUserBirthday, checkScheduleBirthdays
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,11 @@ def initiateDiscordBot(token: str, character: str) -> None:
 
     intents = discord.Intents.default()
     intents.message_content = True
-    bot = discord.Client(intents=intents)
+    intents.members = True
+    bot = commands.Bot(command_prefix="!", intents=intents)
+
+    # Birthday Events Listener
+    setupBirthdayEvents(bot)
 
     @bot.event
     async def on_ready():
@@ -70,7 +76,7 @@ def initiateDiscordBot(token: str, character: str) -> None:
     
     @bot.event
     async def on_message_delete(message: discord.Message):
-        logger.info("Deleting a messsage from user memory database...")
+        logger.info("Deleting a message from user memory database...")
 
         if message.author.bot:
             return
@@ -123,6 +129,125 @@ def initiateDiscordBot(token: str, character: str) -> None:
     bot.run(token)
     logger.info("Discord bot initialized")
 
+def setupBirthdayEvents(bot: discord.Bot) -> None:
+    """
+        Sets up birthday listener and commands events for the Discord bot
+
+        Args:
+            bot (discord.Bot): The Discord bot instance.
+    """
+    logger.info("Setting up birthday events...")
+
+    async def pingBirthdayMessageListener(message: discord.Message) -> None:
+        """
+        Listener helper to process ping birthday message command.
+        Format: !birthday @username
+
+        Args:
+            message: The Discord message object.
+
+        Returns:
+            None
+        """
+        messagesPart = message.content.strip().split(maxsplit=10)
+        commandWord = messagesPart[0].lower()
+        targetUser = messagesPart[1] if len(messagesPart) > 1 else None
+
+        if message.author.bot:
+            return
+        if commandWord != "!birthday":
+            return
+        if targetUser is None:
+            return
+        if len(messagesPart) != 2:
+            return
+
+        await pingBirthdayMessage(message ,targetUser)
+
+    @tasks.loop(seconds=60.0)
+    async def birthdayCheckLoop() -> None:
+        """
+        Birthday check schedule loop to run parallel with system.
+
+        Returns:
+            None
+        """
+        await checkScheduleBirthdays(bot)
+
+    async def birthdayReadyListener() -> None:
+        """
+        Discord event listener to start birthday check schedule loop.
+
+        Returns:
+            None
+        """
+        if not birthdayCheckLoop.is_running():
+            birthdayCheckLoop.start()
+            logger.info("Started birthday check schedule.")
+
+    async def saveUserBirthdayListener(message: discord.Message) -> None:
+        """
+        Listener helper to process save user birthday command.
+        Format: !savebirthday MM-DD
+
+        Args:
+            message: The Discord message object.
+
+        Returns:
+            None
+        """
+        messageParts = message.content.strip().split(maxsplit=10)
+        commandWord = messageParts[0].lower()
+        birthdate: str | None = messageParts[1] if len(messageParts) > 1 else None
+
+        if message.author.bot:
+            return
+        if commandWord != "!savebirthday":
+            return
+        if birthdate is None:
+            logger.error("Invalid birthday format.")
+            await message.channel.send("Invalid birthday format. Please use MM-DD (e.g., `10-15` or `05-21`).")
+            return
+        if len(messageParts) != 2:
+            logger.error("Invalid birthday format.")
+            await message.channel.send("Invalid birthday format. Please use MM-DD (e.g., `10-15` or `05-21`).")
+            return
+
+        await saveUserBirthday(message, birthdate)
+
+    async def birthdayTestCommandListener(message: discord.Message) -> None:
+        """
+        Listener helper to process test command only usable by bot owner.
+        Format: !test <user_id>
+
+        Args:
+            message: The Discord message object.
+
+        Returns:
+            None
+        """
+        OWNER_ID: int = 271839706109575168  # Discord owner ID. Replace with your own ID
+
+        messageParts = message.content.strip().split(maxsplit=10)
+        commandWord = messageParts[0].lower()
+        targetUserID: str | None = messageParts[1] if len(messageParts) > 1 else None
+
+        if message.author.bot: # Do not process messages from bots
+            return
+        if commandWord != "!test": # Do not process if command is not "!test"
+            return
+        if len(messageParts) != 2: # Do not process if there are not exactly two parts in the message
+            return
+        if message.author.id != OWNER_ID: # Do not process if the author is not the owner
+            return
+
+        await runImmediateTest(bot, targetUserID)
+
+    bot.add_listener(pingBirthdayMessageListener, "on_message")
+    bot.add_listener(saveUserBirthdayListener, "on_message")
+    bot.add_listener(birthdayTestCommandListener, "on_message")
+    bot.add_listener(birthdayReadyListener, "on_ready")
+    logger.info("Birthday events setup complete.")
 
 def splitMessage(text: str, limit: int = 1900) -> list[str]:
     """
