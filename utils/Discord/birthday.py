@@ -4,6 +4,7 @@ import os
 import re
 import discord
 import logging
+from zoneinfo import ZoneInfo
 
 from paths import ROOT
 from utils.RAG.llm import sendBirthdayMessage
@@ -99,6 +100,62 @@ async def pingBirthdayMessage(message: discord.Message, targetUser: str | None =
     await message.channel.send(finalResponse)
     logger.info("Message announced to user.")
 
+async def checkScheduleBirthdays(bot: discord.Client) -> None:
+    """
+    Background worker that runs every minute to scan for birthdays and send messages.
+
+    Args:
+        bot: Discord client object
+
+    Returns:
+        None
+    """
+    logger.debug("Checking for birthdays...")
+
+    birthdays: dict = loadBirthdayData()
+    if not birthdays:
+        return
+
+    targetTimeZone = ZoneInfo("America/New_York")
+    currDateTime = datetime.datetime.now(targetTimeZone)
+
+    # birthdayData hour and minute is military time
+    for userID, birthdayData in birthdays.items():
+        if (
+            currDateTime.month == birthdayData["month"] and
+            currDateTime.day == birthdayData["day"] and
+            currDateTime.hour == birthdayData.get("hour", 7) and
+            currDateTime.minute == birthdayData.get("minute", 0)
+        ):
+            logger.info(f"Birthday match found for user with ID {userID}. Sending birthday message...")
+
+            try:
+                user: discord.User = await bot.fetch_user(int(userID))
+                if not user:
+                    logger.error(f"Failed to fetch user with ID {userID}.")
+                    continue
+
+                aiResponse: str | None = await sendBirthdayMessage(user.name)
+                if not aiResponse:
+                    logger.error(f"Failed to send birthday message to user with ID {userID}.")
+                    continue
+
+                # Mention username and birthday message
+                finalResponse: str = f"<@{userID}>\n{aiResponse}"
+
+                await user.send(finalResponse)
+                logger.info(f"Message sent to user with ID {userID}.")
+            except discord.Forbidden:
+                logger.error(f"Failed to send birthday message to user with ID {userID}. DM is blocked.")
+                continue
+            except discord.HTTPException:
+                logger.error(f"Failed to send birthday message to user with ID {userID}.")
+                continue
+            except Exception as e:
+                logger.error(f"Failed to send birthday message to user with ID {userID}. Unexpected error: {e}")
+
+    logger.debug("Birthday check complete.")
+
 async def saveUserBirthday(message: discord.Message, birthdate: str) -> None:
     """
     Save user birthday data to file.
@@ -140,7 +197,7 @@ async def saveUserBirthday(message: discord.Message, birthdate: str) -> None:
         "name": username,
         "month": birthdateMonth,
         "day": birthdateDay,
-        "hour": 9,
+        "hour": 7,  # Military time
         "minute": 0
     }
 

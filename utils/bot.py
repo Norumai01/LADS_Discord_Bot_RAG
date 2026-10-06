@@ -1,11 +1,11 @@
 import discord
 import logging
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from utils.RAG.Data_Cleaning.deleteUserConversation import deleteUserConversation
 from utils.RAG.Data_Cleaning.deleteUserMemory import deleteUserMemory
 from utils.rag_pipeline import ragPipeline
-from utils.Discord.birthday import runImmediateTest, pingBirthdayMessage, saveUserBirthday
+from utils.Discord.birthday import runImmediateTest, pingBirthdayMessage, saveUserBirthday, checkScheduleBirthdays
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +164,27 @@ def setupBirthdayEvents(bot: discord.Bot) -> None:
 
         await pingBirthdayMessage(message ,targetUser)
 
+    @tasks.loop(seconds=60.0)
+    async def birthdayCheckLoop() -> None:
+        """
+        Birthday check schedule loop to run parallel with system.
+
+        Returns:
+            None
+        """
+        await checkScheduleBirthdays(bot)
+
+    async def birthdayReadyListener() -> None:
+        """
+        Discord event listener to start birthday check schedule loop.
+
+        Returns:
+            None
+        """
+        if not birthdayCheckLoop.is_running():
+            birthdayCheckLoop.start()
+            logger.info("Started birthday check schedule.")
+
     async def saveUserBirthdayListener(message: discord.Message) -> None:
         """
         Listener helper to process save user birthday command.
@@ -193,7 +214,6 @@ def setupBirthdayEvents(bot: discord.Bot) -> None:
             return
 
         await saveUserBirthday(message, birthdate)
-
 
     async def birthdayTestCommandListener(message: discord.Message) -> None:
         """
@@ -226,6 +246,7 @@ def setupBirthdayEvents(bot: discord.Bot) -> None:
     bot.add_listener(pingBirthdayMessageListener, "on_message")
     bot.add_listener(saveUserBirthdayListener, "on_message")
     bot.add_listener(birthdayTestCommandListener, "on_message")
+    bot.add_listener(birthdayReadyListener, "on_ready")
     logger.info("Birthday events setup complete.")
 
 def splitMessage(text: str, limit: int = 1900) -> list[str]:
